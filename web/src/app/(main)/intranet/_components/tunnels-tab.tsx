@@ -114,60 +114,60 @@ export function TunnelsTab({
                   const entry = t.listen_host ? `${t.listen_host}:${t.listen_port}` : "—";
                   const target = t.target_host ? `${t.target_host}:${t.target_port}` : "—";
                   return (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">#{t.id}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {t.task_id ? `#${t.task_id}` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        {t.kind || "-"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <StateBadge state={t.state} />
-                    </TableCell>
-                    <TableCell className="max-w-0">
-                      <code className="block truncate font-mono text-xs" title={entry}>
-                        {entry}
-                      </code>
-                    </TableCell>
-                    <TableCell className="max-w-0">
-                      <code className="block truncate font-mono text-xs" title={target}>
-                        {target}
-                      </code>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {t.via_session_id ? `#${t.via_session_id}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground tabular-nums">
-                      {fmtTime(t.last_check)}
-                    </TableCell>
-                    <TableCell className="max-w-0">
-                      <span
-                        className={cn(
-                          "block truncate text-xs",
-                          t.error ? "text-red-600 dark:text-red-400" : "text-muted-foreground",
-                        )}
-                        title={t.error ?? ""}
-                      >
-                        {t.error || "—"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1"
-                        disabled={t.state !== "alive"}
-                        title={t.state === "alive" ? "回收该隧道" : "仅存活隧道可回收"}
-                        onClick={() => setPendingTeardown(t)}
-                      >
-                        <UnplugIcon className="size-3.5" />
-                        回收
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                    <TableRow key={t.id}>
+                      <TableCell className="font-mono text-xs text-muted-foreground">#{t.id}</TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {t.task_id ? `#${t.task_id}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className="font-mono text-xs">
+                          {t.kind || "-"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <StateBadge state={t.state} />
+                      </TableCell>
+                      <TableCell className="max-w-0">
+                        <code className="block truncate font-mono text-xs" title={entry}>
+                          {entry}
+                        </code>
+                      </TableCell>
+                      <TableCell className="max-w-0">
+                        <code className="block truncate font-mono text-xs" title={target}>
+                          {target}
+                        </code>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-muted-foreground">
+                        {t.via_session_id ? `#${t.via_session_id}` : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground tabular-nums">
+                        {fmtTime(t.last_check)}
+                      </TableCell>
+                      <TableCell className="max-w-0">
+                        <span
+                          className={cn(
+                            "block truncate text-xs",
+                            t.error ? "text-red-600 dark:text-red-400" : "text-muted-foreground",
+                          )}
+                          title={t.error ?? ""}
+                        >
+                          {t.error || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1"
+                          disabled={t.state !== "alive"}
+                          title={t.state === "alive" ? "回收该隧道" : "仅存活隧道可回收"}
+                          onClick={() => setPendingTeardown(t)}
+                        >
+                          <UnplugIcon className="size-3.5" />
+                          回收
+                        </Button>
+                      </TableCell>
+                    </TableRow>
                   );
                 })
               )}
@@ -182,9 +182,7 @@ export function TunnelsTab({
             <AlertDialogTitle>回收隧道 #{pendingTeardown?.id}？</AlertDialogTitle>
             <AlertDialogDescription>
               将拆除 {pendingTeardown?.kind} 隧道（入口{" "}
-              {pendingTeardown?.listen_host
-                ? `${pendingTeardown.listen_host}:${pendingTeardown.listen_port}`
-                : "—"}
+              {pendingTeardown?.listen_host ? `${pendingTeardown.listen_host}:${pendingTeardown.listen_port}` : "—"}
               ），正在经它代理的连接会立即中断。
             </AlertDialogDescription>
           </AlertDialogHeader>

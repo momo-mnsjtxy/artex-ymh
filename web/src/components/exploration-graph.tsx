@@ -2,47 +2,35 @@
 "use no memo";
 
 import * as React from "react";
+
 import {
   Background,
   BackgroundVariant,
   Controls,
-  type Edge as RFEdge,
   Handle,
   MarkerType,
   MiniMap,
-  type Node as RFNode,
   type NodeProps,
   Panel,
   Position,
   ReactFlow,
   ReactFlowProvider,
+  type Edge as RFEdge,
+  type Node as RFNode,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import {
-  Bug,
-  Compass,
-  Flag,
-  FlaskConical,
-  Layers,
-  Lightbulb,
-  type LucideIcon,
-  Target,
-} from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { Bug, Compass, Flag, FlaskConical, Layers, Lightbulb, type LucideIcon, Target } from "lucide-react";
+
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { toneClasses, type Tone } from "@/lib/status";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { type Tone, toneClasses } from "@/lib/status";
 import type { Edge, ExploreKind, TaskNode } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export const relLabel: Record<string, string> = {
   spawns: "派生",
@@ -67,14 +55,62 @@ type TypeMeta = {
 };
 
 const typeMeta: Record<ExploreKind, TypeMeta> = {
-  task: { label: "根任务", icon: Flag, iconBg: "bg-slate-500", chip: "bg-slate-500/15 text-slate-600 dark:text-slate-300", hex: "#64748b" },
-  begin: { label: "起点", icon: Flag, iconBg: "bg-slate-500", chip: "bg-slate-500/15 text-slate-600 dark:text-slate-300", hex: "#64748b" },
-  goal: { label: "目标", icon: Target, iconBg: "bg-emerald-500", chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", hex: "#10b981" },
-  hint: { label: "提示", icon: Lightbulb, iconBg: "bg-violet-500", chip: "bg-violet-500/15 text-violet-600 dark:text-violet-400", hex: "#8b5cf6" },
-  intent: { label: "意图", icon: Compass, iconBg: "bg-blue-500", chip: "bg-blue-500/15 text-blue-600 dark:text-blue-400", hex: "#3b82f6" },
-  fact: { label: "事实", icon: FlaskConical, iconBg: "bg-amber-500", chip: "bg-amber-500/15 text-amber-600 dark:text-amber-400", hex: "#f59e0b" },
-  finding: { label: "漏洞", icon: Bug, iconBg: "bg-rose-500", chip: "bg-rose-500/15 text-rose-600 dark:text-rose-400", hex: "#f43f5e" },
-  digest: { label: "压缩", icon: Layers, iconBg: "bg-teal-500", chip: "bg-teal-500/15 text-teal-600 dark:text-teal-400", hex: "#14b8a6" },
+  task: {
+    label: "根任务",
+    icon: Flag,
+    iconBg: "bg-slate-500",
+    chip: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+    hex: "#64748b",
+  },
+  begin: {
+    label: "起点",
+    icon: Flag,
+    iconBg: "bg-slate-500",
+    chip: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+    hex: "#64748b",
+  },
+  goal: {
+    label: "目标",
+    icon: Target,
+    iconBg: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    hex: "#10b981",
+  },
+  hint: {
+    label: "提示",
+    icon: Lightbulb,
+    iconBg: "bg-violet-500",
+    chip: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+    hex: "#8b5cf6",
+  },
+  intent: {
+    label: "意图",
+    icon: Compass,
+    iconBg: "bg-blue-500",
+    chip: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
+    hex: "#3b82f6",
+  },
+  fact: {
+    label: "事实",
+    icon: FlaskConical,
+    iconBg: "bg-amber-500",
+    chip: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    hex: "#f59e0b",
+  },
+  finding: {
+    label: "漏洞",
+    icon: Bug,
+    iconBg: "bg-rose-500",
+    chip: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+    hex: "#f43f5e",
+  },
+  digest: {
+    label: "压缩",
+    icon: Layers,
+    iconBg: "bg-teal-500",
+    chip: "bg-teal-500/15 text-teal-600 dark:text-teal-400",
+    hex: "#14b8a6",
+  },
 };
 
 // The task root is an origin fact (kind='fact', state='origin'); render it as "起点".
@@ -139,16 +175,12 @@ function digestMemberIds(n: TaskNode): string[] {
 // active digest passes through unchanged. The full node list is kept by the
 // caller so the detail drawer can still resolve a folded member by id.
 function collapseDigestGraph(nodes: TaskNode[], edges: Edge[]): { viewNodes: TaskNode[]; viewEdges: Edge[] } {
-  const activeDigests = new Set(
-    nodes.filter((n) => n.type === "digest" && n.state === "active").map((n) => n.id),
-  );
+  const activeDigests = new Set(nodes.filter((n) => n.type === "digest" && n.state === "active").map((n) => n.id));
   const memberToDigest = new Map<string, string>();
   for (const e of edges) {
     if (e.rel === "covers" && activeDigests.has(e.src)) memberToDigest.set(e.dst, e.src);
   }
-  const viewNodes = nodes.filter((n) =>
-    n.type === "digest" ? n.state === "active" : !memberToDigest.has(n.id),
-  );
+  const viewNodes = nodes.filter((n) => (n.type === "digest" ? n.state === "active" : !memberToDigest.has(n.id)));
   const remap = (id: string) => memberToDigest.get(id) ?? id;
   const seen = new Set<string>();
   const viewEdges: Edge[] = [];
@@ -179,10 +211,7 @@ function pushMap(m: Map<string, string[]>, k: string, v: string) {
 
 // computeLayout auto-layers nodes by longest path along edges (cycle-safe DFS
 // break + barycenter ordering), so origin → … → finding reads left-to-right.
-function computeLayout(
-  nodes: TaskNode[],
-  edges: Edge[],
-): Map<string, { x: number; y: number }> {
+function computeLayout(nodes: TaskNode[], edges: Edge[]): Map<string, { x: number; y: number }> {
   const order = nodes.map((n) => n.id);
   const idset = new Set(order);
   const valid = edges.filter((e) => idset.has(e.src) && idset.has(e.dst));
@@ -239,7 +268,11 @@ function computeLayout(
   for (const id of order) columns[layer.get(id) ?? 0].push(id);
 
   const colIndexOf = new Map<string, number>();
-  columns.forEach((ids, c) => ids.forEach((id) => colIndexOf.set(id, c)));
+  columns.forEach((ids, c) => {
+    ids.forEach((id) => {
+      colIndexOf.set(id, c);
+    });
+  });
   const neighbors = new Map<string, string[]>();
   for (const e of valid) {
     const cs = colIndexOf.get(e.src);
@@ -275,7 +308,9 @@ function computeLayout(
   const pos = new Map<string, { x: number; y: number }>();
   columns.forEach((ids, c) => {
     const startY = midline - ((ids.length - 1) * ROW_H) / 2;
-    ids.forEach((id, i) => pos.set(id, { x: c * COL_W, y: startY + i * ROW_H }));
+    ids.forEach((id, i) => {
+      pos.set(id, { x: c * COL_W, y: startY + i * ROW_H });
+    });
   });
   return pos;
 }
@@ -317,7 +352,12 @@ function ExploreNode({ data, selected }: NodeProps<ExploreRFNode>) {
             </span>
           )}
           {showPriority && (
-            <span className={cn("shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums", toneClasses[prioTone(n.priority)])}>
+            <span
+              className={cn(
+                "shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                toneClasses[prioTone(n.priority)],
+              )}
+            >
               P{n.priority}
             </span>
           )}
@@ -331,7 +371,12 @@ function ExploreNode({ data, selected }: NodeProps<ExploreRFNode>) {
               来源 #{n.source_task_id}
             </Badge>
           ) : showState ? (
-            <StatusBadge domain={n.type === "goal" ? "goal" : "intent"} value={n.state} dot className="px-1.5 py-0 text-[10px]" />
+            <StatusBadge
+              domain={n.type === "goal" ? "goal" : "intent"}
+              value={n.state}
+              dot
+              className="px-1.5 py-0 text-[10px]"
+            />
           ) : (
             <span className="text-[10px] text-neutral-400 dark:text-neutral-500">{meta.label}</span>
           )}
@@ -390,7 +435,9 @@ function NodeDetailSheet({
           <>
             <SheetHeader className="border-b p-4">
               <div className="flex items-center gap-2.5 pr-8">
-                <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg shadow-sm", meta.iconBg)}>
+                <span
+                  className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg shadow-sm", meta.iconBg)}
+                >
                   <Icon className="size-4 text-white" />
                 </span>
                 <div className="min-w-0">
@@ -412,7 +459,12 @@ function NodeDetailSheet({
                   <DetailRow label="类型">{meta.label}</DetailRow>
                   <DetailRow label="状态">
                     {node.type === "goal" || node.type === "intent" ? (
-                      <StatusBadge domain={node.type === "goal" ? "goal" : "intent"} value={node.state} dot className="px-1.5 py-0 text-[10px]" />
+                      <StatusBadge
+                        domain={node.type === "goal" ? "goal" : "intent"}
+                        value={node.state}
+                        dot
+                        className="px-1.5 py-0 text-[10px]"
+                      />
                     ) : (
                       <span className="font-mono text-xs">{node.state}</span>
                     )}
@@ -456,7 +508,12 @@ function NodeDetailSheet({
                               onClick={() => onSelect(m)}
                               className="hover:bg-accent flex items-start gap-2 rounded-md border p-2 text-left transition-colors"
                             >
-                              <span className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded", mMeta.iconBg)}>
+                              <span
+                                className={cn(
+                                  "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded",
+                                  mMeta.iconBg,
+                                )}
+                              >
                                 <MIcon className="size-3 text-white" />
                               </span>
                               <span className="min-w-0 flex-1">
@@ -483,7 +540,11 @@ function NodeDetailSheet({
                 <section className="border-t pt-3">
                   <div className="mb-1.5 flex items-center justify-between">
                     <h4 className="text-muted-foreground text-xs font-medium">原始数据</h4>
-                    <button type="button" onClick={copy} className="text-muted-foreground hover:text-foreground text-xs transition-colors">
+                    <button
+                      type="button"
+                      onClick={copy}
+                      className="text-muted-foreground hover:text-foreground text-xs transition-colors"
+                    >
                       {copied ? "已复制" : "复制"}
                     </button>
                   </div>
@@ -575,8 +636,16 @@ function ExplorationGraphInner({
         minZoom={0.1}
         className="!bg-[#f0f2f7] dark:!bg-neutral-950"
       >
-        <Background variant={BackgroundVariant.Dots} gap={16} size={1} className="text-neutral-400/50 dark:text-neutral-700/60" />
-        <Controls showInteractive={false} className="!rounded-lg !border !shadow-sm [&>button]:!border-border [&>button]:!bg-card [&>button:hover]:!bg-accent [&_svg]:!fill-foreground" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          className="text-neutral-400/50 dark:text-neutral-700/60"
+        />
+        <Controls
+          showInteractive={false}
+          className="!rounded-lg !border !shadow-sm [&>button]:!border-border [&>button]:!bg-card [&>button:hover]:!bg-accent [&_svg]:!fill-foreground"
+        />
         <MiniMap
           pannable
           zoomable

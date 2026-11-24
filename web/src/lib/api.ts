@@ -775,7 +775,10 @@ export const api = {
     return r.text();
   },
   chatMentions: (kind: string, query: string, signal?: AbortSignal, cursor = "") =>
-    http<{ items: ChatMention[]; next_cursor?: string }>(`/chat/mentions?${new URLSearchParams({ kind, q: query, cursor })}`, { signal }),
+    http<{ items: ChatMention[]; next_cursor?: string }>(
+      `/chat/mentions?${new URLSearchParams({ kind, q: query, cursor })}`,
+      { signal },
+    ),
   chat: (message: string, task?: string, attachments?: ChatAttachment[], seg?: number) =>
     post<{ reply: string; mode: string }>(`/chat${tq(task)}`, { message, attachments, seg }),
   chatStatus: (taskId: string) => get<{ running: boolean }>(`/tasks/${taskId}/chat/status`),
@@ -1106,16 +1109,18 @@ export const api = {
   interceptDecide: (id: number, decision: "allowed" | "denied") =>
     post<{ ok: boolean }>(`/intercept/pending/${id}/decide`, { decision }),
   interceptExecution: (id: number, conversationId?: number) =>
-    get<import("@/lib/types").InterceptExecution>(`/intercept/history/${id}/execution${conversationId ? `?conversation=${conversationId}` : ""}`),
+    get<import("@/lib/types").InterceptExecution>(
+      `/intercept/history/${id}/execution${conversationId ? `?conversation=${conversationId}` : ""}`,
+    ),
   interceptDetail: (id: number) => get<InterceptDetail>(`/intercept/history/${id}`),
   interceptHistory: () => get<{ items: InterceptApprovalRow[] }>("/intercept/history").then((r) => arr(r.items)),
   interceptHistoryPage: (page = 1, size = 20, filter: InterceptApprovalFilter = {}) =>
-    get<{ items: InterceptApprovalRow[]; total?: number }>(`/intercept/history?${interceptPageQuery(page, size, filter)}`).then(
-      (r) => ({
-        items: arr(r.items),
-        total: r.total ?? r.items?.length ?? 0,
-      }),
-    ),
+    get<{ items: InterceptApprovalRow[]; total?: number }>(
+      `/intercept/history?${interceptPageQuery(page, size, filter)}`,
+    ).then((r) => ({
+      items: arr(r.items),
+      total: r.total ?? r.items?.length ?? 0,
+    })),
   interceptTask: (taskId: string) =>
     get<{ items: InterceptApprovalRow[] }>(`/intercept/task/${taskId}`).then((r) => arr(r.items)),
   interceptTaskPage: (taskId: string, page = 1, size = 20, filter: InterceptApprovalFilter = {}) =>
@@ -1156,15 +1161,14 @@ export const api = {
 
   // ---- guard auto-allow (一键放行,带时限的 ask 自动批准) ----
   getAutoAllow: () => get<AutoAllowState>("/guard/auto-allow"),
-  setAutoAllow: (enabled: boolean, hours: number) =>
-    put<AutoAllowState>("/guard/auto-allow", { enabled, hours }),
+  setAutoAllow: (enabled: boolean, hours: number) => put<AutoAllowState>("/guard/auto-allow", { enabled, hours }),
 
   // ---- 待授权网段(引擎在授权边界外探测到的网段,待人工扩权) ----
   // 默认只返回 pending;all=true 含已决(approved/dismissed)。
   pendingScope: (taskId: string, all = false) =>
-    get<{ items: PendingScopeRow[] }>(
-      `/tasks/${encodeURIComponent(taskId)}/pending-scope${all ? "?all=1" : ""}`,
-    ).then((r) => arr(r.items)),
+    get<{ items: PendingScopeRow[] }>(`/tasks/${encodeURIComponent(taskId)}/pending-scope${all ? "?all=1" : ""}`).then(
+      (r) => arr(r.items),
+    ),
   // approve 把网段写入任务 scope,guard 后续放行;dismiss 忽略。
   // 409 = 已被(并发)决定,调用方刷新列表即可。
   decidePendingScope: (id: number, action: "approve" | "dismiss") =>
@@ -1250,8 +1254,7 @@ export const api = {
   // 400 = 无法确定立足点 IP;404 = 会话不存在。
   handoffSession: (id: string) => post<{ task_id: string }>(`/sessions/${encodeURIComponent(id)}/handoff`),
   deleteSession: (id: string) => del<{ ok: boolean }>(`/sessions/${encodeURIComponent(id)}`),
-  tunnels: (taskId?: string) =>
-    get<{ items: TunnelInfo[] }>(`/tunnels${taskQuery(taskId)}`).then((r) => arr(r.items)),
+  tunnels: (taskId?: string) => get<{ items: TunnelInfo[] }>(`/tunnels${taskQuery(taskId)}`).then((r) => arr(r.items)),
   teardownTunnel: (id: string) => post<{ ok: boolean }>(`/tunnels/${encodeURIComponent(id)}/teardown`),
   credentials: (taskId?: string) =>
     get<{ items: Credential[] }>(`/credentials${taskQuery(taskId)}`).then((r) => arr(r.items)),

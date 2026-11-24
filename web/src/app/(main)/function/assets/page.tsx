@@ -94,9 +94,9 @@ function HoneypotBadge({ score, evidence }: { score?: number; evidence?: string 
   if (!score || score <= 0) {
     return <span className="text-xs text-muted-foreground">—</span>;
   }
-  let sigs = evidence || "";
+  let sigs = evidence ?? "";
   try {
-    const arr = JSON.parse(evidence || "[]") as unknown;
+    const arr = JSON.parse(evidence ?? "[]") as unknown;
     if (Array.isArray(arr) && arr.length > 0) sigs = arr.join("\n");
   } catch {
     /* 证据非 JSON 数组时按原文展示 */

@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Input } from "@/components/ui/input";
+
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { sseUrl } from "@/lib/api";
 import { MOCK } from "@/lib/mock/enabled";
 import type { LogLine } from "@/lib/types";
@@ -187,7 +188,7 @@ export default function LogsPage() {
   }, [lines, q, level]);
 
   React.useEffect(() => {
-    if (stick.current && !paused) bottom.current?.scrollIntoView();
+    if (filtered.length && stick.current && !paused) bottom.current?.scrollIntoView();
   }, [filtered, paused]);
 
   const counts = React.useMemo(() => {

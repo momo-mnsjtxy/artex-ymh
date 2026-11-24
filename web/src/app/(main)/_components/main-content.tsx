@@ -2,35 +2,26 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { ChevronRight, ClipboardList } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { navLocation } from "@/navigation/sidebar/sidebar-items";
 
 import { AccountSwitcher } from "./sidebar/account-switcher";
-import { LayoutControls } from "./sidebar/layout-controls";
 import { SearchDialog } from "./sidebar/search-dialog";
 import { ThemeSwitcher } from "./sidebar/theme-switcher";
-import { UpdateBadge } from "./update-badge";
-
-// 任务详情页保持原样：它自带头部/Tabs 与内边距，这里不再叠加全局头部和 padding。
-function isFullBleed(pathname: string) {
-  const p = (() => {
-    try {
-      return decodeURIComponent(pathname);
-    } catch {
-      return pathname;
-    }
-  })();
-  return p.startsWith("/function/tasks/");
-}
 
 export function MainContent({ children }: { children: ReactNode }) {
   const currentUser = useCurrentUser();
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/\/$/, "");
+  const location = navLocation(pathname);
   const [version, setVersion] = useState("");
 
   useEffect(() => {
@@ -40,39 +31,50 @@ export function MainContent({ children }: { children: ReactNode }) {
       .catch(() => setVersion(""));
   }, []);
 
-  if (isFullBleed(pathname)) {
-    return <>{children}</>;
-  }
-
   return (
     <>
-      <header
-        className={cn(
-          "flex h-12 shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12",
-          "[html[data-navbar-style=sticky]_&]:sticky [html[data-navbar-style=sticky]_&]:top-0 [html[data-navbar-style=sticky]_&]:z-50 [html[data-navbar-style=sticky]_&]:overflow-hidden [html[data-navbar-style=sticky]_&]:rounded-t-[inherit] [html[data-navbar-style=sticky]_&]:bg-background/50 [html[data-navbar-style=sticky]_&]:backdrop-blur-md",
-        )}
-      >
-        <div className="flex w-full items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center gap-1 lg:gap-2">
+      <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center border-b bg-card">
+        <div className="flex w-full items-center min-w-0 justify-between px-2 md:px-4">
+          <div className="flex min-w-0 items-center gap-1 lg:gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator
               orientation="vertical"
               className="mx-2 data-[orientation=vertical]:h-4 data-[orientation=vertical]:self-center"
             />
-            <SearchDialog />
+            <nav aria-label="面包屑" className="flex min-w-0 items-center gap-1 text-xs">
+              <span className="hidden text-muted-foreground lg:inline">{location?.group}</span>
+              <ChevronRight className="hidden size-3 text-muted-foreground lg:block" />
+              {location && pathname !== location.url ? (
+                <>
+                  <Link href={location.url} className="text-muted-foreground">
+                    {location.title}
+                  </Link>
+                  <ChevronRight className="size-3" />
+                  <span aria-current="page">详情</span>
+                </>
+              ) : (
+                <span className="truncate" aria-current="page">
+                  {location?.title}
+                </span>
+              )}
+            </nav>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             {version && (
-              <span className="font-medium text-muted-foreground text-xs tabular-nums">版本 · {version}</span>
+              <span className="hidden font-mono text-muted-foreground text-xs lg:inline">版本 · {version}</span>
             )}
-            <UpdateBadge />
-            <LayoutControls />
+            <SearchDialog />
+            <Button asChild variant="ghost" size="icon-sm">
+              <Link href="/system/intercept/approvals" aria-label="待审批记录" title="待审批记录">
+                <ClipboardList />
+              </Link>
+            </Button>
             <ThemeSwitcher />
             <AccountSwitcher users={[currentUser]} />
           </div>
         </div>
       </header>
-      <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col p-3 has-data-[content-padding=false]:p-0 md:p-5 md:has-data-[content-padding=false]:p-0">
         {children}
       </div>
     </>

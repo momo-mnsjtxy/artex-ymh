@@ -190,7 +190,7 @@ export function OverviewTab({ taskId }: { taskId: string }) {
     } catch (e) {
       // 409 等冲突：刷新列表，以服务端决定为准
       toast.error(e instanceof Error ? e.message : "操作失败");
-      await loadPendingScope().catch(() => {});
+      await loadPendingScope().catch(() => undefined);
     } finally {
       setDeciding((prev) => {
         const next = new Set(prev);
