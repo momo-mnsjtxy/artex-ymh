@@ -1285,12 +1285,12 @@ function AgentTriggersTab({ agentKey, agent }: { agentKey: string; agent?: Agent
                 <div className="grid gap-1">
                   {tools.map((tool) => (
                     <label
-                      htmlFor={`trigger-${agentKey}-${tool.key}`}
+                      htmlFor={`trigger-tool-option-${agentKey}-${tool.key}`}
                       key={tool.key}
                       className="flex items-start gap-2 text-xs"
                     >
                       <Checkbox
-                        id={`trigger-${agentKey}-${tool.key}`}
+                        id={`trigger-tool-option-${agentKey}-${tool.key}`}
                         className="mt-0.5"
                         checked={toolNames.includes(tool.key)}
                         onCheckedChange={() => toggleTool(tool.key)}
