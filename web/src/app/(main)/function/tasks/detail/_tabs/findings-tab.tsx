@@ -139,9 +139,18 @@ function Row({
   );
 }
 
-export function FindingsTab({ taskId }: { taskId: string }) {
+export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: React.RefObject<HTMLElement | null> }) {
   const compact = useIsMobile();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const evidenceTitleRef = React.useRef<HTMLHeadingElement>(null);
+  React.useLayoutEffect(() => {
+    if (selectedId === null || !evidenceTitleRef.current) return;
+    const title = evidenceTitleRef.current.getBoundingClientRect();
+    const visibleTop = (headerRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
+    if (title.top < visibleTop || title.bottom > window.innerHeight) {
+      window.scrollBy({ top: title.top - visibleTop, behavior: "instant" });
+    }
+  }, [selectedId, headerRef]);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: "task-finding-evidence",
     onlySaveAfterUserInteractions: true,
@@ -241,7 +250,7 @@ export function FindingsTab({ taskId }: { taskId: string }) {
   const evidence = (
     <aside aria-label="发现证据" className="min-w-0 rounded-lg border bg-card">
       <header className="flex items-center justify-between gap-2 border-b px-3 py-2">
-        <h2 className="min-w-0 truncate text-sm font-semibold" title={findingLabel(selected)}>
+        <h2 ref={evidenceTitleRef} className="min-w-0 truncate text-sm font-semibold" title={findingLabel(selected)}>
           {findingLabel(selected)}
         </h2>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedId(null)}>

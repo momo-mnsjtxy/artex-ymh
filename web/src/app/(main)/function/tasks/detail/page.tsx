@@ -215,6 +215,7 @@ function TaskLLMControl({ task, profiles, onUpdated }: { task: Task; profiles: L
 }
 
 function TaskDetailInner() {
+  const headerRef = React.useRef<HTMLElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
@@ -375,7 +376,7 @@ function TaskDetailInner() {
       className="flex min-w-0 flex-1 flex-col gap-0"
     >
       {/* Top fixed area */}
-      <header className="sticky top-12 z-10 flex flex-col gap-2 border-b bg-card px-4 py-2.5 lg:px-6">
+      <header ref={headerRef} className="sticky top-12 z-10 flex flex-col gap-2 border-b bg-card px-4 py-2.5 lg:px-6">
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="size-7">
             <Link href="/function/tasks" aria-label="返回任务列表">
@@ -470,7 +471,7 @@ function TaskDetailInner() {
           <GraphTab taskId={id} />
         </TabsContent>
         <TabsContent value="findings" className="mt-0">
-          <FindingsTab key={id} taskId={id} />
+          <FindingsTab key={id} taskId={id} headerRef={headerRef} />
         </TabsContent>
         <TabsContent value="retests" className="mt-0">
           <RetestsTab key={id} taskId={id} />
