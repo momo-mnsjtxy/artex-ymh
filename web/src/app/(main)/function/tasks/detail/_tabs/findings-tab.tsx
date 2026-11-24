@@ -50,15 +50,17 @@ function Row({
   onStatus,
   open,
   onSelect,
+  rowRef,
 }: {
   f: Finding;
   contextTaskId: string;
   open: boolean;
   onSelect: () => void;
+  rowRef?: React.Ref<HTMLDivElement>;
   onStatus: (f: Finding, next: FindingStatus) => void;
 }) {
   return (
-    <div className="border-b last:border-b-0">
+    <div ref={rowRef} className="border-b last:border-b-0">
       <div className="@container flex w-full flex-wrap items-center gap-2 px-3 py-2 text-sm hover:bg-accent/40">
         <button
           type="button"
@@ -143,14 +145,35 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
   const compact = useIsMobile();
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const evidenceTitleRef = React.useRef<HTMLHeadingElement>(null);
+  const listViewportRef = React.useRef<HTMLDivElement>(null);
+  const selectedRowRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (selectedId === null || !evidenceTitleRef.current) return;
+    if (!compact) {
+      const viewport = listViewportRef.current;
+      if (!viewport) return;
+      // The resizable group can restore a saved width after this commit.
+      // Measure after reflow, on selection and width changes only.
+      let lastWidth: number;
+      const observer = new ResizeObserver(([entry]) => {
+        if (entry.contentRect.width === lastWidth) return;
+        lastWidth = entry.contentRect.width;
+        const row = selectedRowRef.current?.getBoundingClientRect();
+        if (!row) return;
+        const visibleTop = viewport.getBoundingClientRect().top + viewport.clientTop;
+        const visibleBottom = visibleTop + viewport.clientHeight;
+        if (row.top < visibleTop) viewport.scrollTop += row.top - visibleTop;
+        else if (row.bottom > visibleBottom) viewport.scrollTop += row.bottom - visibleBottom;
+      });
+      observer.observe(viewport);
+      return () => observer.disconnect();
+    }
     const title = evidenceTitleRef.current.getBoundingClientRect();
     const visibleTop = (headerRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
     if (title.top < visibleTop || title.bottom > window.innerHeight) {
       window.scrollBy({ top: title.top - visibleTop, behavior: "instant" });
     }
-  }, [selectedId, headerRef]);
+  }, [compact, selectedId, headerRef]);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: "task-finding-evidence",
     onlySaveAfterUserInteractions: true,
@@ -229,25 +252,27 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
             )}
           </button>
         </div>
-        {items.map((f) => (
-          <Row
-            key={f.id}
-            f={f}
-            contextTaskId={taskId}
-            onStatus={onStatus}
-            open={selectedId === f.id}
-            onSelect={() => setSelectedId(f.id === selectedId ? null : f.id)}
-          />
-        ))}
-        {items.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">本任务及直接关联任务暂无确认发现。</p>
-        )}
+        <div ref={listViewportRef} className="md:max-h-[max(12rem,calc(100dvh-16rem))] md:overflow-y-auto">
+          {items.map((f) => (
+            <Row
+              key={f.id}
+              f={f}
+              contextTaskId={taskId}
+              onStatus={onStatus}
+              open={selectedId === f.id}
+              rowRef={selectedId === f.id ? selectedRowRef : undefined}
+              onSelect={() => setSelectedId(f.id === selectedId ? null : f.id)}
+            />
+          ))}
+          {items.length === 0 && (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">本任务及直接关联任务暂无确认发现。</p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
 
-  if (!selected) return list;
-  const evidence = (
+  const evidence = selected && (
     <aside aria-label="发现证据" className="min-w-0 rounded-lg border bg-card">
       <header className="flex items-center justify-between gap-2 border-b px-3 py-2">
         <h2 ref={evidenceTitleRef} className="min-w-0 truncate text-sm font-semibold" title={findingLabel(selected)}>
@@ -284,10 +309,14 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
       <ResizablePanel id="findings" defaultSize="62%" minSize="35%">
         {list}
       </ResizablePanel>
-      <ResizableHandle withHandle aria-label="调整证据面板宽度" className="mx-2 self-stretch" />
-      <ResizablePanel id="evidence" defaultSize="38%" minSize="22%">
-        {evidence}
-      </ResizablePanel>
+      {selected && (
+        <>
+          <ResizableHandle withHandle aria-label="调整证据面板宽度" className="mx-2 self-stretch" />
+          <ResizablePanel id="evidence" defaultSize="38%" minSize="22%">
+            {evidence}
+          </ResizablePanel>
+        </>
+      )}
     </ResizablePanelGroup>
   );
 }
