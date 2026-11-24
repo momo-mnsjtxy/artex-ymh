@@ -7,7 +7,6 @@ import { AppSidebar } from "@/app/(main)/_components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { auth } from "@/lib/auth";
 import { getClientCookie } from "@/lib/cookie.client";
-import { cn } from "@/lib/utils";
 
 import { MainContent } from "./_components/main-content";
 import { PendingApprovalsProvider } from "./_components/pending-approvals";
@@ -43,16 +42,7 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
         }
       >
         <AppSidebar />
-        <SidebarInset
-          className={cn(
-            "[html[data-content-layout=centered]_&>*]:mx-auto",
-            "[html[data-content-layout=centered]_&>*]:w-full",
-            "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
-            "peer-data-[variant=inset]:border",
-            "[--dashboard-header-height:--spacing(12)]",
-            "min-w-0",
-          )}
-        >
+        <SidebarInset className="min-w-0 [--dashboard-header-height:--spacing(12)]">
           <MainContent>{children}</MainContent>
         </SidebarInset>
       </SidebarProvider>
