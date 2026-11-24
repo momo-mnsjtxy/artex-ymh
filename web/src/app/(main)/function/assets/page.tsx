@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 
 import { AssetDslSearch } from "@/components/asset-dsl-search";
+import { MethodBadge } from "@/components/http-method";
 import { ScopeTextEditor } from "@/components/scope-text-editor";
 import {
   AlertDialog,
@@ -61,32 +62,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { parseCompanyScopeText } from "@/lib/company-scope";
 import { safeHref } from "@/lib/safe-href";
+import { httpStatusColor } from "@/lib/status";
 import type { Asset, Company, CompanyScopeRule } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const METHOD_COLOR: Record<string, string> = {
-  GET: "bg-emerald-100 text-emerald-700",
-  POST: "bg-blue-100 text-blue-700",
-  PUT: "bg-amber-100 text-amber-700",
-  PATCH: "bg-orange-100 text-orange-700",
-  DELETE: "bg-red-100 text-red-700",
-  HEAD: "bg-purple-100 text-purple-700",
-  OPTIONS: "bg-slate-100 text-slate-600",
-};
-
-function MethodBadge({ method }: { method: string }) {
-  const m = method.toUpperCase();
-  return (
-    <span
-      className={cn(
-        "inline-block rounded px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none",
-        METHOD_COLOR[m] ?? "bg-muted text-muted-foreground",
-      )}
-    >
-      {m || "—"}
-    </span>
-  );
-}
 
 // 批 6 L1 蜜罐静态签名徽标:score≥0.9 红色"蜜罐"、其余 >0 黄色"疑似"、0 不显示;
 // hover 显示命中签名证据(honeypot_evidence 为 JSON 数组文本,解析失败按原文展示)。
@@ -113,14 +91,6 @@ function HoneypotBadge({ score, evidence }: { score?: number; evidence?: string 
       {high ? "蜜罐" : "疑似"}
     </span>
   );
-}
-
-function statusTone(code: number) {
-  if (code >= 500) return "text-red-500";
-  if (code >= 400) return "text-amber-500";
-  if (code >= 300) return "text-blue-500";
-  if (code >= 200) return "text-emerald-500";
-  return "text-muted-foreground";
 }
 
 const PAGE_SIZES = [25, 50, 100, 200];
@@ -341,12 +311,12 @@ export default function AssetsPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] min-h-0 flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+    <div className="flex h-[calc(100dvh-5rem)] min-h-[22rem] min-w-0 flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">资产</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">
             共 <span className="tabular-nums">{totalAssets}</span> 项资产
           </span>
@@ -364,7 +334,7 @@ export default function AssetsPage() {
 
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="overflow-x-auto overflow-y-hidden">
-          <TabsList variant="default">
+          <TabsList variant="default" className="w-max">
             {TABS.map((t) => (
               <TabsTrigger key={t.key} value={t.key}>
                 <t.icon className="size-3.5" />
@@ -378,69 +348,67 @@ export default function AssetsPage() {
         {/* 企业 */}
         <TabsContent value="company" className="mt-0 flex min-h-0 flex-1 flex-col">
           <Card className="flex min-h-0 flex-1 flex-col overflow-hidden py-0">
-            <div className="min-h-0 flex-1 overflow-auto">
-              <Table>
-                <TableHeader className="sticky top-0 z-10 bg-card">
-                  <TableRow>
-                    <TableHead>企业</TableHead>
-                    <TableHead className="w-24 text-right">资产数</TableHead>
-                    <TableHead>资产范围</TableHead>
-                    <TableHead className="w-36 text-right">操作</TableHead>
+            <Table viewportClassName="min-h-0 flex-1 overflow-auto">
+              <TableHeader className="sticky top-0 z-10 bg-card">
+                <TableRow>
+                  <TableHead>企业</TableHead>
+                  <TableHead className="w-24 text-right">资产数</TableHead>
+                  <TableHead>资产范围</TableHead>
+                  <TableHead className="w-36 text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {companies.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <CompanyAvatar name={c.name} logo={c.logo} />
+                        <span className="font-medium">{c.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-sm">{c.asset_count}</TableCell>
+                    <TableCell>
+                      {c.scope?.length ? (
+                        <div className="flex flex-wrap gap-1">
+                          {c.scope.map((s, i) => (
+                            <Badge key={i} variant="secondary" className="font-mono text-[11px]">
+                              {s.raw}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">未设置范围</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <EditScopeDialog company={c} onSaved={refresh} />
+                        <AppendScopeDialog company={c} onSaved={refresh} />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            setCompanyDeleteTarget(c);
+                            setCompanyDeleteAssets(false);
+                          }}
+                          aria-label={`删除企业 ${c.name}`}
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {companies.map((c) => (
-                    <TableRow key={c.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <CompanyAvatar name={c.name} logo={c.logo} />
-                          <span className="font-medium">{c.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-sm">{c.asset_count}</TableCell>
-                      <TableCell>
-                        {c.scope?.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {c.scope.map((s, i) => (
-                              <Badge key={i} variant="secondary" className="font-mono text-[11px]">
-                                {s.raw}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">未设置范围</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <EditScopeDialog company={c} onSaved={refresh} />
-                          <AppendScopeDialog company={c} onSaved={refresh} />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => {
-                              setCompanyDeleteTarget(c);
-                              setCompanyDeleteAssets(false);
-                            }}
-                            aria-label={`删除企业 ${c.name}`}
-                          >
-                            <Trash2Icon className="size-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {companies.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
-                        还没有企业。点击右上角「新增企业」并填写资产范围，系统会自动认领命中的资产。
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+                {companies.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
+                      还没有企业。点击右上角「新增企业」并填写资产范围，系统会自动认领命中的资产。
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </Card>
         </TabsContent>
 
@@ -464,7 +432,9 @@ export default function AssetsPage() {
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
-                <TableCell className="font-mono text-xs font-medium">{a.domain}</TableCell>
+                <TableCell className="max-w-80 break-all whitespace-normal font-mono text-xs font-medium">
+                  {a.domain}
+                </TableCell>
                 <TableCell className="text-xs">{a.icp || "—"}</TableCell>
                 <TableCell className="text-xs">
                   {companyName(a.company_id) || <span className="text-muted-foreground">未归属</span>}
@@ -552,7 +522,9 @@ export default function AssetsPage() {
                 <TableCell className="w-8 pr-0">
                   <Checkbox checked={selected.has(a.id)} onCheckedChange={() => toggleSelect(a.id)} />
                 </TableCell>
-                <TableCell className="font-mono text-xs font-medium">{a.domain}</TableCell>
+                <TableCell className="max-w-80 break-all whitespace-normal font-mono text-xs font-medium">
+                  {a.domain}
+                </TableCell>
                 <TableCell className="font-mono text-xs">{a.root_domain || "—"}</TableCell>
                 <TableCell className="text-xs">{a.record_type || "—"}</TableCell>
                 <TableCell className="max-w-xs truncate font-mono text-xs">
@@ -666,7 +638,9 @@ export default function AssetsPage() {
                   <TableCell className="font-mono text-xs tabular-nums">{a.port || "—"}</TableCell>
                   <TableCell>
                     {a.status_code != null ? (
-                      <span className={cn("font-mono text-xs font-semibold tabular-nums", statusTone(a.status_code))}>
+                      <span
+                        className={cn("font-mono text-xs font-semibold tabular-nums", httpStatusColor(a.status_code))}
+                      >
                         {a.status_code}
                       </span>
                     ) : (
@@ -879,37 +853,36 @@ function AssetCard({
 
   return (
     <Card className="flex min-h-0 flex-1 flex-col overflow-hidden py-0">
-      <div className="min-h-0 flex-1 overflow-auto scrollbar-thin scrollbar-track-transparent">
-        <Table>
-          <TableHeader className="sticky top-0 z-10 bg-card">
-            <TableRow>
-              {cols.map((c, i) =>
-                c === "" && i === 0 && onToggleAll ? (
-                  <TableHead key={i} className="w-8 pr-0">
-                    <Checkbox
-                      checked={allSelected ? true : someSelected ? "indeterminate" : false}
-                      onCheckedChange={() => onToggleAll(pageIds)}
-                    />
-                  </TableHead>
-                ) : (
-                  <TableHead key={c + i}>{c}</TableHead>
-                ),
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {childRows.length > 0 ? (
-              childRows
-            ) : (
-              <TableRow>
-                <TableCell colSpan={cols.length} className="py-12 text-center text-sm text-muted-foreground">
-                  {loaded ? "暂无数据。" : "加载中…"}
-                </TableCell>
-              </TableRow>
+      <Table viewportClassName="min-h-0 flex-1 overflow-auto">
+        <TableHeader className="sticky top-0 z-10 bg-card">
+          <TableRow>
+            {cols.map((c, i) =>
+              c === "" && i === 0 && onToggleAll ? (
+                <TableHead key={i} className="w-8 pr-0">
+                  <Checkbox
+                    aria-label="选择本页全部资产"
+                    checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                    onCheckedChange={() => onToggleAll(pageIds)}
+                  />
+                </TableHead>
+              ) : (
+                <TableHead key={c + i}>{c}</TableHead>
+              ),
             )}
-          </TableBody>
-        </Table>
-      </div>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {childRows.length > 0 ? (
+            childRows
+          ) : (
+            <TableRow>
+              <TableCell colSpan={cols.length} className="py-12 text-center text-sm text-muted-foreground">
+                {loaded ? "暂无数据。" : "加载中…"}
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
       {total > 0 && (
         <div className="flex shrink-0 items-center gap-2 border-t px-3 py-1.5 text-xs text-muted-foreground">
           <Select value={String(size)} onValueChange={(v) => onSize(Number(v))}>
@@ -935,6 +908,7 @@ function AssetCard({
                 variant="outline"
                 size="icon"
                 className="size-7"
+                aria-label="上一页"
                 disabled={page <= 0}
                 onClick={() => onPage((p) => Math.max(0, p - 1))}
               >
@@ -947,6 +921,7 @@ function AssetCard({
                 variant="outline"
                 size="icon"
                 className="size-7"
+                aria-label="下一页"
                 disabled={page + 1 >= pageCount}
                 onClick={() => onPage((p) => Math.min(pageCount - 1, p + 1))}
               >

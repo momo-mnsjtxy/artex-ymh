@@ -142,8 +142,8 @@ export function FindingsTable({
 
   return (
     /* 固定列宽保证展开内容不撑开表格；窄屏只在表格内部横向滚动。 */
-    <Table className="min-w-[60rem] table-fixed">
-      <TableHeader>
+    <Table viewportClassName="max-h-[65dvh] overflow-auto" className="min-w-[62rem] table-fixed">
+      <TableHeader className="sticky top-0 z-10 bg-card">
         <TableRow>
           <TableHead className="w-8">
             <Checkbox
@@ -158,7 +158,7 @@ export function FindingsTable({
           <TableHead className="w-44">资产</TableHead>
           <TableHead className="w-28">状态</TableHead>
           <TableHead className="w-32">所属任务</TableHead>
-          <TableHead className="w-24">时间</TableHead>
+          <TableHead className="w-[13ch]">时间</TableHead>
           <TableHead className="w-48">操作</TableHead>
         </TableRow>
       </TableHeader>
@@ -212,7 +212,9 @@ export function FindingsTable({
                     ) : (
                       <span className="truncate font-medium">{f.name || f.vulnclass || "未分类"}</span>
                     )}
-                    <span className="truncate text-xs text-muted-foreground">{f.summary}</span>
+                    <span className="truncate text-xs text-muted-foreground" title={f.summary}>
+                      {f.summary}
+                    </span>
                     <Badge variant="outline">流量证据 {f.traffic_count ?? 0} 条</Badge>
                   </div>
                 </TableCell>
@@ -239,7 +241,7 @@ export function FindingsTable({
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   {f.finding_id ? (
                     <Select value={f.status} onValueChange={(v) => onStatusChange(f, v as FindingStatus)}>
-                      <SelectTrigger size="sm" className="h-7 w-full border-none px-1 shadow-none focus-visible:ring-0">
+                      <SelectTrigger size="sm" className="h-7 w-full border-none px-1 shadow-none focus-visible:ring-2">
                         <StatusBadge domain="finding" value={f.status} dot />
                       </SelectTrigger>
                       <SelectContent position="popper" align="end">

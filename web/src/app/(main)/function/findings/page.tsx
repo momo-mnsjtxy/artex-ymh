@@ -753,11 +753,11 @@ export default function FindingsPage() {
 
   const statCards = [
     { label: "发现总数", value: stats.total, icon: BugIcon },
-    { label: "待处理", value: stats.pending, tone: "text-amber-500", icon: ClockIcon },
-    { label: "严重", value: stats.critical, tone: "text-rose-600", icon: ShieldAlertIcon },
-    { label: "高危", value: stats.high, tone: "text-red-500", icon: TriangleAlertIcon },
-    { label: "中危", value: stats.medium, tone: "text-amber-500", icon: TriangleAlertIcon },
-    { label: "低危", value: stats.low, tone: "text-slate-500", icon: InfoIcon },
+    { label: "待处理", value: stats.pending, tone: "text-warning", icon: ClockIcon },
+    { label: "严重", value: stats.critical, tone: "text-danger", icon: ShieldAlertIcon },
+    { label: "高危", value: stats.high, tone: "text-danger", icon: TriangleAlertIcon },
+    { label: "中危", value: stats.medium, tone: "text-warning", icon: TriangleAlertIcon },
+    { label: "低危", value: stats.low, tone: "text-running", icon: InfoIcon },
   ];
 
   // 导出弹窗里「当前筛选」的条数:两个视图的筛选一致,只是统计口径来源不同。
@@ -963,7 +963,7 @@ export default function FindingsPage() {
 
         {view === "asset" && (
           <div className="grid min-h-0 items-start gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
-            <Card className="gap-0 py-3 lg:sticky lg:top-4">
+            <Card className="gap-0 py-3 lg:sticky lg:top-16">
               <CardContent className="flex max-h-[24rem] flex-col px-3 lg:max-h-[calc(100vh-14rem)]">
                 {assetTree.loading && !assetTree.loaded ? (
                   <div className="flex min-h-36 items-center justify-center">

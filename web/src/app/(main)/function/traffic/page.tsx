@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { HttpCodeBlock } from "@/components/http-code-block";
+import { MethodBadge } from "@/components/http-method";
 import { LinkTrafficDialog } from "@/components/link-traffic-dialog";
 import {
   AlertDialog,
@@ -39,6 +40,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
+import { httpStatusColor } from "@/lib/status";
 import type { TrafficDetail, TrafficExchange, TrafficHost, TrafficResp } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -58,18 +60,6 @@ function fmtBytes(n: number) {
   const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
   const v = n / 1024 ** i;
   return `${i === 0 ? v : v.toFixed(1)} ${units[i]}`;
-}
-
-function statusTone(status: number) {
-  if (status >= 500) return "text-red-500";
-  if (status >= 400) return "text-amber-500";
-  if (status >= 300) return "text-blue-500";
-  if (status >= 200) return "text-emerald-500";
-  return "text-muted-foreground";
-}
-
-function MethodBadge({ method }: { method: string }) {
-  return <Badge className="shrink-0 font-mono">{method}</Badge>;
 }
 
 // Older captures may predate Host persistence because net/http keeps Host
@@ -235,7 +225,7 @@ export default function TrafficPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">流量</h1>
           <p className="text-muted-foreground text-sm">全局录制代理 · 所有 HTTP 往来</p>
@@ -437,86 +427,105 @@ export default function TrafficPage() {
         ) : null}
       </div>
       {/* History table */}
-      <div className="flex h-[calc(100vh-15rem)] min-h-0 flex-col">
+      <div className="flex h-[calc(100dvh-15rem)] min-h-60 flex-col">
         <Card className="flex min-h-0 flex-1 flex-col overflow-hidden py-0">
-          <div className="min-h-0 flex-1 overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 z-10 bg-card">
-                <TableRow>
-                  <TableHead className="w-10">
+          <Table viewportClassName="min-h-0 flex-1 overflow-auto" className="table-fixed">
+            <TableHeader className="sticky top-0 z-10 bg-card">
+              <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    aria-label="选择本页流量"
+                    checked={exchanges.length > 0 && exchanges.every((e) => selectedFlows.has(e.id))}
+                    onCheckedChange={(checked) =>
+                      setSelectedFlows((previous) => {
+                        const next = new Set(previous);
+                        for (const e of exchanges) {
+                          if (checked === true) next.add(e.id);
+                          else next.delete(e.id);
+                        }
+                        return next;
+                      })
+                    }
+                  />
+                </TableHead>
+                <TableHead className="hidden md:table-cell w-36">时间</TableHead>
+                <TableHead className="hidden lg:table-cell w-44">host</TableHead>
+                <TableHead className="w-16">方法</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead className="w-16">状态码</TableHead>
+                <TableHead className="hidden xl:table-cell w-36">content-type</TableHead>
+                <TableHead className="hidden lg:table-cell w-24 text-right">响应长度</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {exchanges.map((e) => (
+                <TableRow
+                  key={e.id}
+                  className={cn("cursor-pointer", selected?.id === e.id && "bg-accent hover:bg-accent")}
+                  onClick={() => setSelected(e)}
+                >
+                  <TableCell>
                     <Checkbox
-                      aria-label="选择本页流量"
-                      checked={exchanges.length > 0 && exchanges.every((e) => selectedFlows.has(e.id))}
+                      aria-label={`选择流量 ${e.id}`}
+                      checked={selectedFlows.has(e.id)}
+                      onClick={(event) => event.stopPropagation()}
                       onCheckedChange={(checked) =>
                         setSelectedFlows((previous) => {
                           const next = new Set(previous);
-                          for (const e of exchanges) {
-                            if (checked === true) next.add(e.id);
-                            else next.delete(e.id);
-                          }
+                          if (checked === true) next.add(e.id);
+                          else next.delete(e.id);
                           return next;
                         })
                       }
                     />
-                  </TableHead>
-                  <TableHead className="w-36">时间</TableHead>
-                  <TableHead className="w-44">host</TableHead>
-                  <TableHead className="w-20">方法</TableHead>
-                  <TableHead>URL</TableHead>
-                  <TableHead className="w-20">状态码</TableHead>
-                  <TableHead className="w-36">content-type</TableHead>
-                  <TableHead className="w-24 text-right">响应长度</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {exchanges.map((e) => (
-                  <TableRow
-                    key={e.id}
-                    className={cn("cursor-pointer", selected?.id === e.id && "bg-accent hover:bg-accent")}
-                    onClick={() => setSelected(e)}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-xs text-muted-foreground tabular-nums">
+                    {fmtTime(e.ts)}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell truncate font-mono text-xs" title={e.host}>
+                    {e.host}
+                  </TableCell>
+                  <TableCell>
+                    <MethodBadge method={e.method} />
+                  </TableCell>
+                  <TableCell>
+                    <button
+                      type="button"
+                      title={e.url}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelected(e);
+                      }}
+                      className="block w-full truncate text-left font-mono text-xs hover:underline"
+                    >
+                      {e.url}
+                    </button>
+                  </TableCell>
+                  <TableCell>
+                    <span className={cn("font-mono text-xs font-semibold tabular-nums", httpStatusColor(e.status))}>
+                      {e.status}
+                    </span>
+                  </TableCell>
+                  <TableCell
+                    className="hidden xl:table-cell truncate font-mono text-xs text-muted-foreground"
+                    title={e.content_type}
                   >
-                    <TableCell>
-                      <Checkbox
-                        aria-label={`选择流量 ${e.id}`}
-                        checked={selectedFlows.has(e.id)}
-                        onClick={(event) => event.stopPropagation()}
-                        onCheckedChange={(checked) =>
-                          setSelectedFlows((previous) => {
-                            const next = new Set(previous);
-                            if (checked === true) next.add(e.id);
-                            else next.delete(e.id);
-                            return next;
-                          })
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground tabular-nums">{fmtTime(e.ts)}</TableCell>
-                    <TableCell className="font-mono text-xs">{e.host}</TableCell>
-                    <TableCell>
-                      <MethodBadge method={e.method} />
-                    </TableCell>
-                    <TableCell className="max-w-0">
-                      <span className="block truncate font-mono text-xs">{e.url}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn("font-mono text-xs font-semibold tabular-nums", statusTone(e.status))}>
-                        {e.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{e.content_type}</TableCell>
-                    <TableCell className="text-right text-xs tabular-nums">{fmtBytes(e.resp_len)}</TableCell>
-                  </TableRow>
-                ))}
-                {exchanges.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
-                      {traffic === null ? "加载中…" : "没有匹配的流量。"}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    {e.content_type}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell text-right text-xs tabular-nums">
+                    {fmtBytes(e.resp_len)}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {exchanges.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                    {traffic === null ? "加载中…" : "没有匹配的流量。"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </Card>
       </div>
 
@@ -528,19 +537,24 @@ export default function TrafficPage() {
         />
       ) : null}
       <Sheet open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="w-full! max-w-none! gap-0 p-0 sm:w-[48rem]! sm:max-w-[48rem]!">
+        <SheetContent className="w-full! max-w-none! gap-0 p-0 sm:w-[min(48rem,100vw)]! sm:max-w-[min(48rem,100vw)]!">
           {selected && (
             <>
               <SheetHeader className="border-b px-5 py-4">
                 <div className="flex items-center gap-2 pr-8">
                   <MethodBadge method={selected.method} />
-                  <Badge variant="secondary" className={cn("font-mono tabular-nums", statusTone(selected.status))}>
+                  <Badge variant="secondary" className={cn("font-mono tabular-nums", httpStatusColor(selected.status))}>
                     {selected.status}
                   </Badge>
                   <span className="ml-auto text-xs text-muted-foreground tabular-nums">{fmtTime(selected.ts)}</span>
                 </div>
                 <SheetTitle className="break-all font-mono">{selected.host}</SheetTitle>
-                <SheetDescription className="break-all font-mono">{selected.url}</SheetDescription>
+                <SheetDescription className="max-h-24 overflow-auto break-all font-mono text-xs">
+                  {selected.url}
+                </SheetDescription>
+                <p className="font-mono text-xs text-muted-foreground">
+                  {selected.content_type || "—"} · {fmtBytes(selected.resp_len)}
+                </p>
               </SheetHeader>
               <Tabs defaultValue="request" className="min-h-0 flex-1 gap-0">
                 <TabsList className="mx-5 mt-4 grid w-auto grid-cols-2">

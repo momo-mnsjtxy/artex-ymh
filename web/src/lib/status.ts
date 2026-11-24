@@ -116,3 +116,11 @@ export type StatusDomain = keyof typeof maps;
 export function statusMeta(domain: StatusDomain, key: string): StatusMeta {
   return maps[domain][key] ?? { label: key, tone: "neutral" };
 }
+
+export function httpStatusColor(code: number): string {
+  if (code >= 500) return "text-danger";
+  if (code >= 400) return "text-warning";
+  if (code >= 300) return "text-running";
+  if (code >= 200) return "text-success";
+  return "text-muted-foreground";
+}
