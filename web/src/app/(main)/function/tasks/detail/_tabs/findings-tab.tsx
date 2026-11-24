@@ -284,12 +284,15 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
         <p className="shrink-0 text-xs text-muted-foreground">
           证据 / PoC · 流量证据 <span className="tabular-nums">{selected.traffic_count ?? 0}</span> 条
         </p>
-        <pre
+        <section
           key={selected.id}
-          className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-all text-xs md:max-h-none"
+          aria-label="证据正文"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: The scroll region needs keyboard focus in WebKit.
+          tabIndex={0}
+          className="max-h-[60dvh] overflow-auto focus-visible:outline-2 focus-visible:outline-ring md:max-h-none"
         >
-          {selected.evidence || "暂无证据正文。"}
-        </pre>
+          <pre className="whitespace-pre-wrap break-all text-xs">{selected.evidence || "暂无证据正文。"}</pre>
+        </section>
       </div>
     </aside>
   );
