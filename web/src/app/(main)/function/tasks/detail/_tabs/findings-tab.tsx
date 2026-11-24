@@ -5,12 +5,16 @@ import * as React from "react";
 import Link from "next/link";
 
 import { ArrowDownIcon, ArrowUpIcon, ArrowUpRightIcon, ChevronRightIcon } from "lucide-react";
+import { useDefaultLayout } from "react-resizable-panels";
 import { toast } from "sonner";
 
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { api } from "@/lib/api";
 import { useStoredSortPreference } from "@/lib/sort-preference";
 import { statusMeta } from "@/lib/status";
@@ -24,7 +28,7 @@ const FINDING_SORT_PREFERENCE_KEY = "artex_task_findings_sort";
 
 function findingLabel(finding: Finding): string {
   if (finding.name?.trim()) return finding.name;
-  if (finding.vulnclass?.trim()) return finding.vulnclass;
+  if (typeof finding.vulnclass === "string" && finding.vulnclass.trim()) return finding.vulnclass;
   return "未分类";
 }
 
@@ -44,19 +48,25 @@ function Row({
   f,
   contextTaskId,
   onStatus,
+  open,
+  onSelect,
+  rowRef,
 }: {
   f: Finding;
   contextTaskId: string;
+  open: boolean;
+  onSelect: () => void;
+  rowRef?: React.Ref<HTMLDivElement>;
   onStatus: (f: Finding, next: FindingStatus) => void;
 }) {
-  const [open, setOpen] = React.useState(false);
   return (
-    <div className="border-b last:border-b-0">
-      <div className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-accent/40">
+    <div ref={rowRef} className="border-b last:border-b-0">
+      <div className="@container flex w-full flex-wrap items-center gap-2 px-3 py-2 text-sm hover:bg-accent/40">
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={onSelect}
+          aria-expanded={open}
+          className="flex min-w-32 flex-1 items-center gap-2 text-left"
         >
           <ChevronRightIcon
             className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")}
@@ -74,9 +84,11 @@ function Row({
             <span className="truncate text-xs text-muted-foreground">{f.summary}</span>
           </div>
         </button>
-        <Badge variant="outline">流量证据 {f.traffic_count ?? 0} 条</Badge>
+        <Badge variant="outline" className="hidden @xl:inline-flex">
+          流量证据 {f.traffic_count ?? 0} 条
+        </Badge>
         {f.assets && f.assets.length > 0 && (
-          <div className="hidden shrink-0 flex-wrap justify-end gap-1 sm:flex">
+          <div className="hidden shrink-0 flex-wrap justify-end gap-1 @2xl:flex">
             {f.assets.slice(0, 2).map((a) => (
               <code
                 key={a.id}
@@ -91,7 +103,7 @@ function Row({
         )}
         {f.finding_id && !f.inherited ? (
           <Select value={f.status} onValueChange={(v) => onStatus(f, v as FindingStatus)}>
-            <SelectTrigger size="sm" className="h-7 w-28 shrink-0 border-none px-1 shadow-none focus-visible:ring-0">
+            <SelectTrigger size="sm" className="h-7 w-28 shrink-0 border-none px-1 shadow-none focus-visible:ring-2">
               <StatusBadge domain="finding" value={f.status} dot />
             </SelectTrigger>
             <SelectContent position="popper" align="end">
@@ -107,7 +119,7 @@ function Row({
         ) : (
           <StatusBadge domain="finding" value={f.status} dot />
         )}
-        <span className="hidden shrink-0 text-xs text-muted-foreground md:block">
+        <span className="hidden shrink-0 text-xs text-muted-foreground @4xl:block">
           {new Date(f.ts).toLocaleString("zh-CN")}
         </span>
         {f.finding_id && (
@@ -125,19 +137,45 @@ function Row({
           </Link>
         )}
       </div>
-      {open && (
-        <div className="bg-muted/30 px-4 pb-4 pl-11">
-          <div className="mb-1 text-xs font-medium text-muted-foreground">证据 / PoC</div>
-          <pre className="overflow-auto rounded-md border bg-background p-3 font-mono text-xs whitespace-pre-wrap">
-            {f.evidence}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }
 
-export function FindingsTab({ taskId }: { taskId: string }) {
+export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: React.RefObject<HTMLElement | null> }) {
+  const compact = useIsMobile();
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const evidenceTitleRef = React.useRef<HTMLHeadingElement>(null);
+  const listViewportRef = React.useRef<HTMLDivElement>(null);
+  const selectedRowRef = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    if (selectedId === null || !evidenceTitleRef.current) return;
+    if (compact) {
+      const title = evidenceTitleRef.current.getBoundingClientRect();
+      const visibleTop = (headerRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
+      if (title.top < visibleTop || title.bottom > window.innerHeight - 8) {
+        window.scrollBy({ top: title.top - visibleTop, behavior: "instant" });
+      }
+      return;
+    }
+    const viewport = listViewportRef.current;
+    if (!viewport) return;
+    // The resizable group can restore a saved width after this commit.
+    // Measure after reflow, on selection and viewport size changes.
+    const observer = new ResizeObserver(() => {
+      const row = selectedRowRef.current?.getBoundingClientRect();
+      if (!row) return;
+      const listTop = viewport.getBoundingClientRect().top + viewport.clientTop;
+      const listBottom = listTop + viewport.clientHeight;
+      if (row.top < listTop) viewport.scrollTop += row.top - listTop;
+      else if (row.bottom > listBottom) viewport.scrollTop += row.bottom - listBottom;
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [compact, selectedId, headerRef]);
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "task-finding-evidence",
+    onlySaveAfterUserInteractions: true,
+  });
   const [findings, setFindings] = React.useState<Finding[]>([]);
   const [sortPreference, setSortPreference] = useStoredSortPreference(
     FINDING_SORT_PREFERENCE_KEY,
@@ -187,10 +225,11 @@ export function FindingsTab({ taskId }: { taskId: string }) {
       return b.id.localeCompare(a.id, undefined, { numeric: true });
     });
 
-  return (
-    <Card className="overflow-hidden py-0">
-      <CardContent className="px-0">
-        <div className="flex items-center border-b px-4 py-2 text-xs text-muted-foreground">
+  const selected = items.find((item) => item.id === selectedId);
+  const list = (
+    <Card className="min-w-0 overflow-hidden py-0 md:max-h-full">
+      <CardContent className="px-0 md:flex md:min-h-0 md:flex-col">
+        <div className="flex shrink-0 items-center border-b px-4 py-2 text-xs text-muted-foreground">
           <span className="min-w-0 flex-1">漏洞</span>
           <button
             type="button"
@@ -211,13 +250,72 @@ export function FindingsTab({ taskId }: { taskId: string }) {
             )}
           </button>
         </div>
-        {items.map((f) => (
-          <Row key={f.id} f={f} contextTaskId={taskId} onStatus={onStatus} />
-        ))}
-        {items.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">本任务及直接关联任务暂无确认发现。</p>
-        )}
+        <div ref={listViewportRef} className="md:overflow-y-auto">
+          {items.map((f) => (
+            <Row
+              key={f.id}
+              f={f}
+              contextTaskId={taskId}
+              onStatus={onStatus}
+              open={selectedId === f.id}
+              rowRef={selectedId === f.id ? selectedRowRef : undefined}
+              onSelect={() => setSelectedId(f.id === selectedId ? null : f.id)}
+            />
+          ))}
+          {items.length === 0 && (
+            <p className="px-4 py-8 text-center text-sm text-muted-foreground">本任务及直接关联任务暂无确认发现。</p>
+          )}
+        </div>
       </CardContent>
     </Card>
+  );
+
+  const evidence = selected && (
+    <aside aria-label="发现证据" className="min-w-0 rounded-lg border bg-card md:flex md:max-h-full md:flex-col">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
+        <h2 ref={evidenceTitleRef} className="min-w-0 truncate text-sm font-semibold" title={findingLabel(selected)}>
+          {findingLabel(selected)}
+        </h2>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedId(null)}>
+          收起证据
+        </Button>
+      </header>
+      <div className="flex flex-col gap-2 p-3 md:min-h-0">
+        <p className="shrink-0 text-xs text-muted-foreground">
+          证据 / PoC · 流量证据 <span className="tabular-nums">{selected.traffic_count ?? 0}</span> 条
+        </p>
+        <section
+          key={selected.id}
+          aria-label="证据正文"
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: The scroll region needs keyboard focus in WebKit.
+          tabIndex={0}
+          className="max-h-[60dvh] overflow-auto focus-visible:outline-2 focus-visible:outline-ring md:max-h-none"
+        >
+          <pre className="whitespace-pre-wrap break-all text-xs">{selected.evidence || "暂无证据正文。"}</pre>
+        </section>
+      </div>
+    </aside>
+  );
+  if (compact)
+    return (
+      <div className="flex min-w-0 flex-col gap-2">
+        {evidence}
+        {list}
+      </div>
+    );
+  return (
+    <ResizablePanelGroup orientation="horizontal" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
+      <ResizablePanel id="findings" defaultSize="62%" minSize="35%">
+        {list}
+      </ResizablePanel>
+      {selected && (
+        <>
+          <ResizableHandle withHandle aria-label="调整证据面板宽度" className="mx-2 self-stretch" />
+          <ResizablePanel id="evidence" defaultSize="38%" minSize="22%">
+            {evidence}
+          </ResizablePanel>
+        </>
+      )}
+    </ResizablePanelGroup>
   );
 }

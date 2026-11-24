@@ -335,7 +335,7 @@ function AssetTreeRow({
     <div
       className={cn(
         "group flex items-center gap-1 rounded-md pr-1 text-sm",
-        selected ? "bg-accent" : "hover:bg-accent/50",
+        selected ? "bg-running/10 text-running" : "hover:bg-accent/50",
       )}
       style={{ paddingLeft: `${node.depth * 10}px` }}
     >
@@ -355,20 +355,21 @@ function AssetTreeRow({
       <button
         type="button"
         onClick={onSelect}
+        aria-pressed={selected}
         className="flex min-w-0 flex-1 items-center gap-1.5 py-1 text-left"
         title={`${KIND_LABEL[node.kind] ?? node.kind} · ${node.label}`}
       >
         <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span className={cn("min-w-0 truncate", selected && "font-medium")}>{node.display}</span>
+        <span className={cn("min-w-0 truncate font-mono text-xs", selected && "font-medium")}>{node.display}</span>
       </button>
       <span className="flex shrink-0 items-center gap-1 text-xs tabular-nums">
         {node.critical > 0 && (
-          <span className="text-rose-600" title={`严重 ${node.critical}`}>
+          <span className="bg-critical px-1 rounded text-white" title={`严重 ${node.critical}`}>
             {node.critical}
           </span>
         )}
         {node.high > 0 && (
-          <span className="text-red-500" title={`高危 ${node.high}`}>
+          <span className="text-danger" title={`高危 ${node.high}`}>
             {node.high}
           </span>
         )}

@@ -1,30 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
-import { Bot, PlusIcon, Trash2Icon } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Bot, PlusIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
+
+import { AgentEditor } from "@/components/agent-editor";
+import { ListSkeleton } from "@/components/list-skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,22 +18,28 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { AgentEditor } from "@/components/agent-editor";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import type { Agent } from "@/lib/types";
 
 // AgentGridCard is one clickable tile opening the agent's editor drawer. Custom
 // (non-builtin) agents get a delete button.
-function AgentGridCard({
-  agent,
-  onOpen,
-  onDeleted,
-}: {
-  agent: Agent;
-  onOpen: () => void;
-  onDeleted: () => void;
-}) {
+function AgentGridCard({ agent, onOpen, onDeleted }: { agent: Agent; onOpen: () => void; onDeleted: () => void }) {
   async function del() {
     try {
       await api.deleteAgent(agent.key);
@@ -84,7 +72,7 @@ function AgentGridCard({
           )}
         </div>
         <p className="text-muted-foreground line-clamp-2 min-h-8 text-xs">
-          {agent.description || "（无描述）"}
+          {agent.description ? agent.description : "（无描述）"}
         </p>
         <div className="text-muted-foreground flex flex-wrap gap-1.5 text-[10px]">
           <span className="rounded border px-1.5 py-0.5">MCP {agent.mcp_count ?? 0}</span>
@@ -178,12 +166,7 @@ function CreateAgentDialog({ onCreated }: { onCreated: (key: string) => void }) 
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="agent-name">名称</Label>
-            <Input
-              id="agent-name"
-              placeholder="如 研究助手"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <Input id="agent-name" placeholder="如 研究助手" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="agent-desc">描述</Label>
@@ -207,11 +190,18 @@ function CreateAgentDialog({ onCreated }: { onCreated: (key: string) => void }) 
 }
 
 export default function AgentsPage() {
+  const [loadState, setLoadState] = React.useState<"loading" | "ready" | "error">("loading");
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [editKey, setEditKey] = React.useState<string | null>(null);
 
   const reload = React.useCallback(() => {
-    api.agents().then(setAgents).catch(() => setAgents([]));
+    api
+      .agents()
+      .then((items) => {
+        setAgents(items);
+        setLoadState("ready");
+      })
+      .catch(() => setLoadState("error"));
   }, []);
   React.useEffect(() => {
     reload();
@@ -221,12 +211,10 @@ export default function AgentsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Agent</h1>
-          <p className="text-muted-foreground text-sm">
-            内置 Agent 的提示词/配置，以及自定义会话 Agent 的创建与管理
-          </p>
+          <p className="text-muted-foreground text-sm">内置 Agent 的提示词/配置，以及自定义会话 Agent 的创建与管理</p>
         </div>
         <CreateAgentDialog
           onCreated={(key) => {
@@ -239,12 +227,26 @@ export default function AgentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Agent 清单</CardTitle>
-          <CardDescription>共 {agents.length} 个</CardDescription>
+          {loadState === "ready" && (
+            <CardDescription>
+              共 <span className="tabular-nums">{agents.length}</span> 个
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
-          {agents.length === 0 ? (
+          {loadState === "loading" && <ListSkeleton label="正在加载 Agent 清单" />}
+          {loadState === "error" && (
+            <p role="alert" className="py-6 text-center text-sm text-danger">
+              Agent 清单加载失败。{" "}
+              <Button variant="outline" size="sm" onClick={reload}>
+                重试
+              </Button>
+            </p>
+          )}
+          {loadState === "ready" && agents.length === 0 && (
             <p className="text-muted-foreground py-6 text-center text-sm">（暂无 Agent）</p>
-          ) : (
+          )}
+          {loadState === "ready" && agents.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {agents.map((a) => (
                 <AgentGridCard key={a.key} agent={a} onOpen={() => setEditKey(a.key)} onDeleted={reload} />
@@ -257,7 +259,7 @@ export default function AgentsPage() {
       <Sheet open={!!editing} onOpenChange={(o) => !o && setEditKey(null)}>
         <SheetContent
           side="right"
-          className="flex flex-col gap-0 p-0 data-[side=right]:w-[45vw] data-[side=right]:sm:max-w-[45vw]"
+          className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
         >
           {editing && (
             <>

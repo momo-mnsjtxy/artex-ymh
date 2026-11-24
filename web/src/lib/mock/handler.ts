@@ -53,10 +53,16 @@ function advanceMockRetests() {
     retest.status = "completed";
     retest.verdict = "inconclusive";
     retest.summary = "演示环境未执行真实验证，无法确认漏洞当前状态。";
-    retest.evidence = "### 演示记录\n\n已关联原漏洞。此环境未连接真实 Agent，也未向目标发送请求；请在实际部署中执行复测。";
+    retest.evidence =
+      "### 演示记录\n\n已关联原漏洞。此环境未连接真实 Agent，也未向目标发送请求；请在实际部署中执行复测。";
     retest.finished_at = new Date().toISOString();
     mockRetestMessages[retest.conversation_id].push({
-      seq: 3, worker: "retester", ts: retest.finished_at, kind: "text", summary: retest.summary, detail: retest.evidence,
+      seq: 3,
+      worker: "retester",
+      ts: retest.finished_at,
+      kind: "text",
+      summary: retest.summary,
+      detail: retest.evidence,
     });
   }
 }
@@ -884,14 +890,42 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     const kind = q.get("kind") ?? "";
     const query = (q.get("q") ?? "").trim().toLowerCase();
     const candidates = [
-      ...D.findings.map((finding, index) => ({ kind: "finding", id: index + 1, label: finding.name || finding.vulnclass, description: `${finding.severity} · ${finding.summary}` })),
+      ...D.findings.map((finding, index) => ({
+        kind: "finding",
+        id: index + 1,
+        label: finding.name || finding.vulnclass,
+        description: `${finding.severity} · ${finding.summary}`,
+      })),
       ...D.companies.map((company) => ({ kind: "company", id: company.id, label: company.name, description: "企业" })),
-      ...D.assets.map((asset) => ({ kind: asset.type, id: asset.id, label: asset.type === "endpoint" ? `${asset.method || "GET"} ${asset.url}` : asset.app_name || asset.url || asset.domain || asset.ip || asset.bundle_id || `资产 #${asset.id}`, description: [asset.type, asset.page_title, asset.service_name, asset.bundle_id, asset.ip].filter(Boolean).join(" · ") })),
+      ...D.assets.map((asset) => ({
+        kind: asset.type,
+        id: asset.id,
+        label:
+          asset.type === "endpoint"
+            ? `${asset.method || "GET"} ${asset.url}`
+            : asset.app_name || asset.url || asset.domain || asset.ip || asset.bundle_id || `资产 #${asset.id}`,
+        description: [asset.type, asset.page_title, asset.service_name, asset.bundle_id, asset.ip]
+          .filter(Boolean)
+          .join(" · "),
+      })),
     ];
-    const filtered = candidates.filter((item) => (!kind || kind === item.kind || (kind === "asset" && item.kind !== "finding" && item.kind !== "company")) && (!query || String(item.id) === query || `${item.label} ${item.description}`.toLowerCase().includes(query)))
-      .sort((a, b) => Number(String(b.id) === query) - Number(String(a.id) === query) || b.id - a.id || a.kind.localeCompare(b.kind));
+    const filtered = candidates
+      .filter(
+        (item) =>
+          (!kind || kind === item.kind || (kind === "asset" && item.kind !== "finding" && item.kind !== "company")) &&
+          (!query || String(item.id) === query || `${item.label} ${item.description}`.toLowerCase().includes(query)),
+      )
+      .sort(
+        (a, b) =>
+          Number(String(b.id) === query) - Number(String(a.id) === query) ||
+          b.id - a.id ||
+          a.kind.localeCompare(b.kind),
+      );
     const offset = Math.max(0, Number(q.get("cursor")) || 0);
-    return { items: filtered.slice(offset, offset + 20), next_cursor: offset + 20 < filtered.length ? String(offset + 20) : undefined };
+    return {
+      items: filtered.slice(offset, offset + 20),
+      next_cursor: offset + 20 < filtered.length ? String(offset + 20) : undefined,
+    };
   }
 
   // ── auth：让 demo 直接进主界面 ──
@@ -966,6 +1000,26 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
       }
     });
     return { items };
+  }
+  if (path === "/intranet/topology" && m === "GET") {
+    if (q.has("task_id")) return { nodes: [], edges: [], segments: [] };
+    const segment = "文档示例网段";
+    const nodes = ["192.0.2.10", "192.0.2.20"].map((ip) => ({
+      id: ip,
+      ip,
+      segment,
+      has_session: false,
+      alive_sessions: 0,
+      is_callback: false,
+    }));
+    return {
+      nodes,
+      edges: [{ id: "example-link", kind: "tunnel", from: nodes[0].id, to: nodes[1].id, state: "stopped" }],
+      segments: [{ name: segment, color_key: "example" }],
+    };
+  }
+  if (seg[0] === "tasks" && seg.length === 3 && seg[2] === "pending-scope" && m === "GET") {
+    return { items: [] };
   }
   if (path === "/tasks/archive/batch" && m === "POST") {
     const requested = bodyIDs(b.task_ids);
@@ -1758,9 +1812,16 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     };
   }
   if (path === "/exploration/findings/retests/active" && m === "GET") {
-    return { retests: mockRetests
-      .filter((item) => ["pending", "running"].includes(item.status) && item.conversation_id != null)
-      .map((item) => ({ id: item.id, finding_id: D.findings[item.finding_id - 1].id, conversation_id: item.conversation_id, status: item.status })) };
+    return {
+      retests: mockRetests
+        .filter((item) => ["pending", "running"].includes(item.status) && item.conversation_id != null)
+        .map((item) => ({
+          id: item.id,
+          finding_id: D.findings[item.finding_id - 1].id,
+          conversation_id: item.conversation_id,
+          status: item.status,
+        })),
+    };
   }
   if (seg[0] === "exploration" && seg[1] === "findings" && seg[3] === "retests") {
     const finding = mockFindings.find((item) => item.id === seg[2]);
@@ -1768,20 +1829,52 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     const findingID = D.findings.findIndex((item) => item.id === finding.id) + 1;
     if (m === "GET") return { retests: structuredClone(mockRetests.filter((item) => item.finding_id === findingID)) };
     if (m === "POST") {
-      const existing = mockRetests.find((item) => item.finding_id === findingID && ["pending", "running"].includes(item.status));
+      const existing = mockRetests.find(
+        (item) => item.finding_id === findingID && ["pending", "running"].includes(item.status),
+      );
       if (existing) return { retest: structuredClone(existing), created: false };
       const now = new Date().toISOString();
       const conversationID = mockConversations.reduce((max, item) => Math.max(max, item.id), 0) + 1;
-      mockConversations.unshift({ id: conversationID, agent_key: "retester", title: `复测 #${finding.id} · ${finding.name || finding.vulnclass}`, pinned: false, created_at: now, updated_at: now });
+      mockConversations.unshift({
+        id: conversationID,
+        agent_key: "retester",
+        title: `复测 #${finding.id} · ${finding.name || finding.vulnclass}`,
+        pinned: false,
+        created_at: now,
+        updated_at: now,
+      });
       const retest: FindingRetest = {
-        id: mockRetests.length + 1, finding_id: findingID, conversation_id: conversationID,
-        status: "running", verdict: "", notes: String(b.notes ?? ""), summary: "", evidence: "",
-        error: "", created_at: now, started_at: now, finished_at: null,
+        id: mockRetests.length + 1,
+        finding_id: findingID,
+        conversation_id: conversationID,
+        status: "running",
+        verdict: "",
+        notes: String(b.notes ?? ""),
+        summary: "",
+        evidence: "",
+        error: "",
+        created_at: now,
+        started_at: now,
+        finished_at: null,
       };
       mockRetests.unshift(retest);
       mockRetestMessages[conversationID] = [
-        { seq: 1, worker: "retester", ts: now, kind: "user", summary: `请复测漏洞 #${finding.id}`, detail: retest.notes },
-        { seq: 2, worker: "retester", ts: now, kind: "text", summary: "演示复测进行中（未向目标发送请求）", detail: "演示复测进行中（未向目标发送请求）" },
+        {
+          seq: 1,
+          worker: "retester",
+          ts: now,
+          kind: "user",
+          summary: `请复测漏洞 #${finding.id}`,
+          detail: retest.notes,
+        },
+        {
+          seq: 2,
+          worker: "retester",
+          ts: now,
+          kind: "text",
+          summary: "演示复测进行中（未向目标发送请求）",
+          detail: "演示复测进行中（未向目标发送请求）",
+        },
       ];
       return { retest: structuredClone(retest), created: true };
     }
@@ -1901,8 +1994,26 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/traffic" && m === "DELETE") return { deleted: 0 };
   if (path === "/traffic/hosts" && m === "DELETE") return { deleted: (b.hosts as unknown[])?.length ?? 0 };
   if (path === "/traffic/hosts") return { hosts: D.trafficHosts };
-  if (path === "/traffic") return D.traffic;
-  if (path === "/traffic/exchange") return D.trafficDetail;
+  if (path === "/traffic") {
+    const host = (q.get("host") ?? "").trim().toLowerCase();
+    const method = (q.get("method") ?? "").trim().toUpperCase();
+    const term = (q.get("q") ?? "").trim().toLowerCase();
+    const page = Math.max(0, Number.parseInt(q.get("page") ?? "", 10) || 0);
+    const requestedSize = Number.parseInt(q.get("size") ?? "", 10);
+    const size = requestedSize > 0 && requestedSize <= 500 ? requestedSize : 100;
+    const rows = (D.traffic.exchanges ?? []).filter((row) => {
+      if (!row.host.toLowerCase().includes(host) || (method && row.method !== method)) return false;
+      const fields = [row.host, row.url, row.content_type, row.method, String(row.status)];
+      if (row.id === "x-9" && term.length >= 3) fields.push(D.trafficDetail.req, D.trafficDetail.resp);
+      return fields.some((field) => field.toLowerCase().includes(term));
+    });
+    return { ...D.traffic, page, size, total: rows.length, exchanges: rows.slice(page * size, (page + 1) * size) };
+  }
+  if (path === "/traffic/exchange") {
+    const id = q.get("id");
+    // Only the orders fixture includes captured message bodies.
+    return id === "x-9" ? D.trafficDetail : { req: "", resp: "" };
+  }
   if (path === "/settings" && m === "GET") return D.settings;
   if (path === "/settings" && m === "PUT") return { ...D.settings, ...b };
   if (path === "/settings/web-search/test") return { ok: true, count: 5, backend: D.settings.web_search_backend };
@@ -1973,10 +2084,16 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   // ── conversations ──
   if (path === "/conversations" && m === "GET") {
     sortMockConversations();
-    return { conversations: structuredClone(mockConversations.map((conversation) => ({
-      ...conversation,
-      running: mockRetests.some((item) => item.conversation_id === conversation.id && ["pending", "running"].includes(item.status)),
-    }))) };
+    return {
+      conversations: structuredClone(
+        mockConversations.map((conversation) => ({
+          ...conversation,
+          running: mockRetests.some(
+            (item) => item.conversation_id === conversation.id && ["pending", "running"].includes(item.status),
+          ),
+        })),
+      ),
+    };
   }
   if (path === "/conversations" && m === "POST") {
     const now = new Date().toISOString();
@@ -2029,7 +2146,9 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   }
   if (seg[0] === "conversations" && seg[2] === "messages" && seg.length === 3 && m === "GET") {
     const items = mockRetestMessages[Number(seg[1])] ?? D.conversationMessages[Number(seg[1])] ?? [];
-    const running = mockRetests.some((item) => item.conversation_id === Number(seg[1]) && ["pending", "running"].includes(item.status));
+    const running = mockRetests.some(
+      (item) => item.conversation_id === Number(seg[1]) && ["pending", "running"].includes(item.status),
+    );
     return { items, cursor: items.length ? items[items.length - 1].seq : 0, running };
   }
   if (seg[0] === "conversations" && seg[2] === "messages" && seg.length === 4) {
@@ -2078,7 +2197,8 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/intercept/rules" && m === "GET") return { rules: D.interceptRules };
   if (seg[0] === "intercept" && seg[1] === "rules" && seg[3] === "toggle")
     return { ok: true, enabled: b.enabled ?? true };
-  if (path === "/intercept/pending" && m === "GET") return { pending: mockInterceptHistory.filter((r) => r.status === "pending") };
+  if (path === "/intercept/pending" && m === "GET")
+    return { pending: mockInterceptHistory.filter((r) => r.status === "pending") };
   if (seg[0] === "intercept" && seg[1] === "pending" && seg[3] === "decide") {
     const id = Number(seg[2]);
     const row = mockInterceptHistory.find((r) => r.id === id) ?? mockInterceptPending.find((r) => r.id === id);
@@ -2108,11 +2228,16 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     if (status && !["pending", "allowed", "denied", "timeout"].includes(status)) throw new Error("无效审批状态");
     if (decisionSource && !["model", "rule", "unknown"].includes(decisionSource)) throw new Error("无效判定来源");
     const filtered = mockInterceptHistory.filter((row) => {
-      const source = row.decision_source || (row.rule_id ? "rule" : row.reason?.startsWith("[模型]") ? "model" : "unknown");
-      return (seg[1] !== "task" || row.task_id === decodeURIComponent(seg[2])) &&
-        (!status || row.status === status) && (!decisionSource || source === decisionSource);
+      const source =
+        row.decision_source || (row.rule_id ? "rule" : row.reason?.startsWith("[模型]") ? "model" : "unknown");
+      return (
+        (seg[1] !== "task" || row.task_id === decodeURIComponent(seg[2])) &&
+        (!status || row.status === status) &&
+        (!decisionSource || source === decisionSource)
+      );
     });
-    if (!q.has("page") && !q.has("size") && !status && !decisionSource) return { items: filtered, total: filtered.length };
+    if (!q.has("page") && !q.has("size") && !status && !decisionSource)
+      return { items: filtered, total: filtered.length };
     const page = Math.max(1, Number(q.get("page")) || 1);
     const size = Math.min(100, Math.max(1, Number(q.get("size")) || 20));
     const offset = (page - 1) * size;

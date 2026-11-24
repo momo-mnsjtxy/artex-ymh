@@ -1,3 +1,2 @@
-npm run generate:presets
-git add src/lib/preferences/theme.ts
+cd web || exit 1
 npm exec -- lint-staged

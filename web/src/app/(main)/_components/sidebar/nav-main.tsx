@@ -1,13 +1,10 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { ChevronRight, MailIcon, PlusCircleIcon } from "lucide-react";
-import { api } from "@/lib/api";
+import { ChevronRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -37,6 +34,9 @@ import type {
   NavMainLinkItem,
   NavMainParentItem,
 } from "@/navigation/sidebar/sidebar-items";
+import { navLocation } from "@/navigation/sidebar/sidebar-items";
+
+import { usePendingApprovals } from "../pending-approvals";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
@@ -100,7 +100,7 @@ export function NavMain({ items }: NavMainProps) {
       return item.subItems.some((sub) => path.startsWith(sub.url));
     }
 
-    return path === item.url;
+    return navLocation(path)?.id === item.id;
   };
 
   const isSubItemActive = (url: string) => {
@@ -114,14 +114,14 @@ export function NavMain({ items }: NavMainProps) {
   return (
     <>
       {items.map((group) => (
-        <SidebarGroup key={group.id}>
+        <SidebarGroup key={group.id} className="py-1">
           {group.label && (
             <SidebarGroupLabel className="group-data-[collapsible=icon]:pointer-events-none">
               {group.label}
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {group.items.map((item) => (
                 <NavItem
                   key={item.id}
@@ -161,37 +161,25 @@ function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen }: NavItem
   );
 }
 
-// InterceptPendingBadge polls /api/intercept/pending every 5 s and shows a red
-// count badge when there are unresolved approval requests.
 function InterceptPendingBadge() {
-  const [count, setCount] = React.useState(0);
-  React.useEffect(() => {
-    let live = true;
-    async function poll() {
-      try {
-        const list = await api.interceptPending();
-        if (live) setCount(list.length);
-      } catch { /* ignore */ }
-    }
-    poll();
-    const t = setInterval(poll, 5000);
-    return () => { live = false; clearInterval(t); };
-  }, []);
-  if (count === 0) return null;
+  const count = usePendingApprovals()?.length;
+  if (!count) return null;
   return (
-    <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold leading-none text-white shadow-sm ring-1 ring-amber-400/40">
+    <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded bg-warning/10 px-1 font-mono text-[10px] font-semibold text-warning">
       {count > 99 ? "99+" : count}
     </SidebarMenuBadge>
   );
 }
 
 function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
+  const { setOpenMobile } = useSidebar();
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild aria-disabled={item.disabled} tooltip={item.title} isActive={isActive}>
         <Link
           prefetch={false}
           href={item.url}
+          onNavigate={() => setOpenMobile(false)}
           target={item.newTab ? "_blank" : undefined}
           rel={item.newTab ? "noreferrer" : undefined}
         >

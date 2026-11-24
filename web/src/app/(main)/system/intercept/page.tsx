@@ -1,17 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
-import {
-  BotIcon,
-  ListFilterIcon,
-  PencilIcon,
-  PlusIcon,
-  ShieldAlertIcon,
-  Trash2Icon,
-  ZapIcon,
-} from "lucide-react";
 
+import { BotIcon, ListFilterIcon, PencilIcon, PlusIcon, ShieldAlertIcon, Trash2Icon, ZapIcon } from "lucide-react";
+import { toast } from "sonner";
+
+import { ListSkeleton } from "@/components/list-skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,45 +18,19 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
-import type { AutoAllowState, InterceptRule, InterceptAction, JudgeConfig, LLMProfile, Tool } from "@/lib/types";
+import type { AutoAllowState, InterceptAction, InterceptRule, JudgeConfig, LLMProfile, Tool } from "@/lib/types";
 
 // ---- tool scope ----
 
@@ -74,36 +42,37 @@ function sdkTool(key: string, description: string): Tool {
 }
 
 const SDK_EXEC: Tool[] = [
-  sdkTool("Bash",        "在 shell 中执行命令"),
-  sdkTool("WebFetch",    "发起 HTTP/HTTPS 请求（含代理支持）"),
-  sdkTool("web_search",  "网络搜索"),
-  sdkTool("shell_open",  "开启持久 PTY 交互会话"),
-  sdkTool("shell_send",  "向交互会话发送输入"),
-  sdkTool("shell_read",  "读取交互会话输出"),
+  sdkTool("Bash", "在 shell 中执行命令"),
+  sdkTool("WebFetch", "发起 HTTP/HTTPS 请求（含代理支持）"),
+  sdkTool("web_search", "网络搜索"),
+  sdkTool("shell_open", "开启持久 PTY 交互会话"),
+  sdkTool("shell_send", "向交互会话发送输入"),
+  sdkTool("shell_read", "读取交互会话输出"),
   sdkTool("shell_close", "关闭交互会话"),
-  sdkTool("shell_list",  "列出所有交互会话"),
+  sdkTool("shell_list", "列出所有交互会话"),
 ];
 
 const SDK_WRITE: Tool[] = [
-  sdkTool("Write",     "写入文件"),
-  sdkTool("Edit",      "编辑文件（精确替换）"),
+  sdkTool("Write", "写入文件"),
+  sdkTool("Edit", "编辑文件（精确替换）"),
   sdkTool("MultiEdit", "批量编辑文件"),
 ];
 
 const SDK_KEYS = new Set([...SDK_EXEC, ...SDK_WRITE].map((t) => t.key));
 
 function groupTools(dbTools: Tool[]) {
-  const sys: Tool[] = [], custom: Tool[] = [];
+  const sys: Tool[] = [],
+    custom: Tool[] = [];
   for (const t of dbTools) {
     if (SDK_KEYS.has(t.key)) continue; // already covered by hardcoded groups
     if (t.system) sys.push(t);
-    else          custom.push(t);
+    else custom.push(t);
   }
   return [
-    { label: "执行类",      tools: SDK_EXEC },
+    { label: "执行类", tools: SDK_EXEC },
     { label: "写入/编辑类", tools: SDK_WRITE },
-    { label: "系统工具",    tools: sys },
-    { label: "自定义工具",  tools: custom },
+    { label: "系统工具", tools: sys },
+    { label: "自定义工具", tools: custom },
   ].filter((g) => g.tools.length > 0);
 }
 
@@ -141,16 +110,18 @@ const defaultForm = (): RuleForm => ({
 
 function ActionBadge({ action }: { action: InterceptAction }) {
   if (action === "allow") return <Badge variant="secondary">允许</Badge>;
-  if (action === "deny")  return <Badge variant="destructive">禁止</Badge>;
-  return <Badge variant="outline" className="border-amber-400 text-amber-600">申请</Badge>;
+  if (action === "deny") return <Badge variant="destructive">禁止</Badge>;
+  return (
+    <Badge variant="outline" className="border-warning/30 text-warning">
+      申请
+    </Badge>
+  );
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-        {label}
-      </Label>
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</Label>
       {children}
     </div>
   );
@@ -190,7 +161,7 @@ function JudgeCard() {
   }, []);
 
   React.useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   function patch(p: Partial<JudgeConfig>) {
@@ -238,7 +209,9 @@ function JudgeCard() {
           <div>
             <p className="text-sm font-semibold leading-tight">模型兜底审批</p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              在<span className="font-medium text-foreground">拦截范围</span>内、且<span className="font-medium text-foreground">没有任何拦截规则命中</span>的命令，才由模型做语义判断（放行 / 转人工 / 拦截）
+              在<span className="font-medium text-foreground">拦截范围</span>内、且
+              <span className="font-medium text-foreground">没有任何拦截规则命中</span>的命令，才由模型做语义判断（放行
+              / 转人工 / 拦截）
             </p>
           </div>
         </div>
@@ -277,10 +250,14 @@ function JudgeCard() {
           <Card className="lg:col-span-2">
             <CardContent className="space-y-5 p-4">
               <div className="space-y-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">判定模型与策略</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  判定模型与策略
+                </p>
                 <Field label="审批模型">
                   <Select value={String(cfg.profile_id || 0)} onValueChange={(v) => patch({ profile_id: Number(v) })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={FOLLOW_ACTIVE}>跟随激活配置</SelectItem>
                       {profiles.map((p) => (
@@ -303,8 +280,13 @@ function JudgeCard() {
                   />
                 </Field>
                 <Field label="模型失败时（出错 / 超时 / 无法解析）">
-                  <Select value={cfg.fail_action} onValueChange={(v) => patch({ fail_action: v as JudgeConfig["fail_action"] })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={cfg.fail_action}
+                    onValueChange={(v) => patch({ fail_action: v as JudgeConfig["fail_action"] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="allow">放行</SelectItem>
                       <SelectItem value="ask">转人工审批</SelectItem>
@@ -317,7 +299,9 @@ function JudgeCard() {
               <Separator />
 
               <div className="space-y-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">人工审批（模型判为「转人工」时）</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  人工审批（模型判为「转人工」时）
+                </p>
                 <Field label="审批等待超时（秒）">
                   <Input
                     type="number"
@@ -330,8 +314,13 @@ function JudgeCard() {
                   />
                 </Field>
                 <Field label="超时后默认动作">
-                  <Select value={cfg.ask_timeout_action} onValueChange={(v) => patch({ ask_timeout_action: v as JudgeConfig["ask_timeout_action"] })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Select
+                    value={cfg.ask_timeout_action}
+                    onValueChange={(v) => patch({ ask_timeout_action: v as JudgeConfig["ask_timeout_action"] })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="deny">拦截</SelectItem>
                       <SelectItem value="allow">放行</SelectItem>
@@ -379,7 +368,7 @@ function AutoAllowCard() {
   }, []);
 
   React.useEffect(() => {
-    load();
+    void load();
     const t = setInterval(load, 30_000);
     return () => clearInterval(t);
   }, [load]);
@@ -421,9 +410,7 @@ function AutoAllowCard() {
         <div className="flex min-w-0 items-center gap-2 text-sm">
           <ZapIcon className={`h-4 w-4 shrink-0 ${enabled ? "text-red-600" : "text-muted-foreground"}`} />
           <span className="shrink-0 font-medium">一键放行</span>
-          <span className="truncate text-muted-foreground">
-            限时自动批准所有需审批操作,仅真·破坏性命令仍被拦截
-          </span>
+          <span className="truncate text-muted-foreground">限时自动批准所有需审批操作,仅真·破坏性命令仍被拦截</span>
         </div>
         <Switch
           checked={enabled}
@@ -456,12 +443,7 @@ function AutoAllowCard() {
                 </p>
                 <div className="flex items-center gap-2">
                   {AUTO_ALLOW_HOURS.map((h) => (
-                    <Button
-                      key={h}
-                      variant={hours === h ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setHours(h)}
-                    >
+                    <Button key={h} variant={hours === h ? "default" : "outline"} size="sm" onClick={() => setHours(h)}>
                       {h} 小时
                     </Button>
                   ))}
@@ -476,7 +458,7 @@ function AutoAllowCard() {
               disabled={busy}
               onClick={(e) => {
                 e.preventDefault(); // 等接口返回后再关弹窗
-                enable();
+                void enable();
               }}
             >
               {busy ? "开启中…" : "确认开启"}
@@ -491,22 +473,22 @@ function AutoAllowCard() {
 // ---- page ----
 
 export default function InterceptPage() {
-  const [rules, setRules]     = React.useState<InterceptRule[]>([]);
+  const [rules, setRules] = React.useState<InterceptRule[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [open, setOpen]       = React.useState(false);
+  const [open, setOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<InterceptRule | null>(null);
-  const [form, setForm]       = React.useState<RuleForm>(defaultForm());
-  const [saving, setSaving]   = React.useState(false);
+  const [form, setForm] = React.useState<RuleForm>(defaultForm());
+  const [saving, setSaving] = React.useState(false);
   const [regexErr, setRegexErr] = React.useState("");
   const [regexWarn, setRegexWarn] = React.useState(false); // true = JS 无法解析但可能是合法 Go 语法
 
   // ---- tool scope dialog ----
-  const [scopeOpen, setScopeOpen]       = React.useState(false);
-  const [allTools, setAllTools]         = React.useState<Tool[]>([]);
+  const [scopeOpen, setScopeOpen] = React.useState(false);
+  const [allTools, setAllTools] = React.useState<Tool[]>([]);
   const [enabledTools, setEnabledTools] = React.useState<Set<string>>(new Set());
   const [scopeLoading, setScopeLoading] = React.useState(false);
-  const [scopeSaving, setScopeSaving]   = React.useState(false);
-  const [scopeTools, setScopeTools]     = React.useState<string[]>([]); // 页头信息条:当前进入拦截的工具
+  const [scopeSaving, setScopeSaving] = React.useState(false);
+  const [scopeTools, setScopeTools] = React.useState<string[]>([]); // 页头信息条:当前进入拦截的工具
 
   // ---- data ----
 
@@ -530,10 +512,17 @@ export default function InterceptPage() {
     }
   }, []);
 
-  React.useEffect(() => { load(); loadScope(); }, [load, loadScope]);
+  React.useEffect(() => {
+    void load();
+    void loadScope();
+  }, [load, loadScope]);
 
   React.useEffect(() => {
-    if (form.match_type !== "regex" || !form.pattern) { setRegexErr(""); setRegexWarn(false); return; }
+    if (form.match_type !== "regex" || !form.pattern) {
+      setRegexErr("");
+      setRegexWarn(false);
+      return;
+    }
     try {
       new RegExp(form.pattern);
       setRegexErr("");
@@ -548,7 +537,9 @@ export default function InterceptPage() {
 
   // ---- rule handlers ----
 
-  function set(patch: Partial<RuleForm>) { setForm(f => ({ ...f, ...patch })); }
+  function set(patch: Partial<RuleForm>) {
+    setForm((f) => ({ ...f, ...patch }));
+  }
 
   function openNew() {
     setEditing(null);
@@ -560,10 +551,16 @@ export default function InterceptPage() {
   function openEdit(rule: InterceptRule) {
     setEditing(rule);
     setForm({
-      name: rule.name, enabled: rule.enabled, priority: rule.priority,
-      match_target: rule.match_target, match_type: rule.match_type,
-      pattern: rule.pattern, action: rule.action, message: rule.message,
-      timeout_enabled: rule.timeout_enabled, timeout_seconds: rule.timeout_seconds,
+      name: rule.name,
+      enabled: rule.enabled,
+      priority: rule.priority,
+      match_target: rule.match_target,
+      match_type: rule.match_type,
+      pattern: rule.pattern,
+      action: rule.action,
+      message: rule.message,
+      timeout_enabled: rule.timeout_enabled,
+      timeout_seconds: rule.timeout_seconds,
       timeout_action: rule.timeout_action,
     });
     setRegexErr("");
@@ -571,9 +568,18 @@ export default function InterceptPage() {
   }
 
   async function handleSave() {
-    if (!form.name.trim())    { toast.error("名称不能为空"); return; }
-    if (!form.pattern.trim()) { toast.error("模式不能为空"); return; }
-    if (regexErr)             { toast.error("正则表达式语法无效"); return; }
+    if (!form.name.trim()) {
+      toast.error("名称不能为空");
+      return;
+    }
+    if (!form.pattern.trim()) {
+      toast.error("模式不能为空");
+      return;
+    }
+    if (regexErr) {
+      toast.error("正则表达式语法无效");
+      return;
+    }
     setSaving(true);
     try {
       if (editing) {
@@ -584,7 +590,7 @@ export default function InterceptPage() {
         toast.success("规则已创建");
       }
       setOpen(false);
-      load();
+      void load();
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -596,7 +602,7 @@ export default function InterceptPage() {
     try {
       await api.deleteInterceptRule(id);
       toast.success("规则已删除");
-      load();
+      void load();
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -605,7 +611,7 @@ export default function InterceptPage() {
   async function handleToggle(rule: InterceptRule) {
     try {
       await api.toggleInterceptRule(rule.id, !rule.enabled);
-      load();
+      void load();
     } catch (e) {
       toast.error((e as Error).message);
     }
@@ -628,9 +634,10 @@ export default function InterceptPage() {
   }
 
   function toggleTool(key: string, val: boolean) {
-    setEnabledTools(prev => {
+    setEnabledTools((prev) => {
       const next = new Set(prev);
-      if (val) next.add(key); else next.delete(key);
+      if (val) next.add(key);
+      else next.delete(key);
       return next;
     });
   }
@@ -655,12 +662,11 @@ export default function InterceptPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-5 p-6">
-
       {/* ---- header ---- */}
       <div className="flex items-center gap-2.5">
         <ShieldAlertIcon className="h-5 w-5 shrink-0" />
         <div>
-          <h1 className="text-lg font-semibold leading-tight">命令拦截</h1>
+          <h1 className="text-xl font-semibold tracking-tight">命令拦截</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             工具执行前先按拦截规则匹配；未命中的命令可交由模型兜底判定
           </p>
@@ -673,21 +679,19 @@ export default function InterceptPage() {
       {/* ---- 拦截范围信息条（规则匹配与模型兜底共用：不在范围内的工具两者都不介入）---- */}
       <div
         className={`flex items-center justify-between gap-3 rounded-lg border px-4 py-2.5 ${
-          scopeTools.length === 0
-            ? "border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20"
-            : "bg-muted/40"
+          scopeTools.length === 0 ? "border-amber-400/60 bg-amber-50/50 dark:bg-amber-950/20" : "bg-muted/40"
         }`}
       >
         <div className="flex min-w-0 items-center gap-2 text-sm">
           <ListFilterIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="shrink-0 font-medium">拦截范围</span>
           {scopeTools.length === 0 ? (
-            <span className="text-amber-700 dark:text-amber-500">
-              未启用任何工具 — 拦截规则与模型兜底均不会生效
-            </span>
+            <span className="text-warning">未启用任何工具 — 拦截规则与模型兜底均不会生效</span>
           ) : (
             <>
-              <Badge variant="secondary" className="shrink-0">{scopeTools.length} 个工具</Badge>
+              <Badge variant="secondary" className="shrink-0">
+                {scopeTools.length} 个工具
+              </Badge>
               <span className="truncate text-muted-foreground" title={scopeTools.join("、")}>
                 {scopeTools.join("、")}
               </span>
@@ -714,9 +718,7 @@ export default function InterceptPage() {
         {/* ---- tab: 拦截规则 ---- */}
         <TabsContent value="rules" className="mt-4 flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">
-              按优先级（数字越大越先）逐条匹配，首条命中的规则生效
-            </p>
+            <p className="text-xs text-muted-foreground">按优先级（数字越大越先）逐条匹配，首条命中的规则生效</p>
             <Button onClick={openNew} size="sm" className="shrink-0">
               <PlusIcon className="h-4 w-4" />
               新建规则
@@ -725,84 +727,79 @@ export default function InterceptPage() {
 
           <Card>
             <CardContent className="p-0">
-          {loading ? (
-            <p className="p-6 text-sm text-muted-foreground">加载中…</p>
-          ) : rules.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-              <ShieldAlertIcon className="h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">暂无规则</p>
-              <Button size="sm" variant="outline" onClick={openNew}>
-                <PlusIcon className="h-4 w-4" />
-                新建第一条规则
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[72px]">优先级</TableHead>
-                  <TableHead>名称</TableHead>
-                  <TableHead className="w-[90px]">目标</TableHead>
-                  <TableHead className="w-[80px]">类型</TableHead>
-                  <TableHead>模式</TableHead>
-                  <TableHead className="w-[72px]">策略</TableHead>
-                  <TableHead className="w-[64px] text-center">启用</TableHead>
-                  <TableHead className="w-[80px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rules.map((rule) => (
-                  <TableRow key={rule.id} className={!rule.enabled ? "opacity-40" : ""}>
-                    <TableCell>
-                      <span className="font-mono text-xs tabular-nums">{rule.priority}</span>
-                    </TableCell>
-                    <TableCell className="font-medium text-sm">{rule.name}</TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {rule.match_target === "tool_name" ? "工具名" : "输入内容"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {rule.match_type === "regex" ? "正则" : "字符串"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-[220px]">
-                      <code className="block truncate rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
-                        {rule.pattern}
-                      </code>
-                    </TableCell>
-                    <TableCell>
-                      <ActionBadge action={rule.action} />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={rule.enabled}
-                        onCheckedChange={() => handleToggle(rule)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-end gap-0.5">
-                        <Button
-                          size="icon" variant="ghost" className="h-7 w-7"
-                          onClick={() => openEdit(rule)}
-                        >
-                          <PencilIcon className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon" variant="ghost"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(rule.id)}
-                        >
-                          <Trash2Icon className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+              {loading ? (
+                <ListSkeleton label="正在加载拦截规则" />
+              ) : rules.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+                  <ShieldAlertIcon className="h-8 w-8 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">暂无规则</p>
+                  <Button size="sm" variant="outline" onClick={openNew}>
+                    <PlusIcon className="h-4 w-4" />
+                    新建第一条规则
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[72px]">优先级</TableHead>
+                      <TableHead>名称</TableHead>
+                      <TableHead className="w-[90px]">目标</TableHead>
+                      <TableHead className="w-[80px]">类型</TableHead>
+                      <TableHead>模式</TableHead>
+                      <TableHead className="w-[72px]">策略</TableHead>
+                      <TableHead className="w-[64px] text-center">启用</TableHead>
+                      <TableHead className="w-[80px]" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {rules.map((rule) => (
+                      <TableRow key={rule.id} className={!rule.enabled ? "opacity-40" : ""}>
+                        <TableCell>
+                          <span className="font-mono text-xs tabular-nums">{rule.priority}</span>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm">{rule.name}</TableCell>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {rule.match_target === "tool_name" ? "工具名" : "输入内容"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs text-muted-foreground">
+                            {rule.match_type === "regex" ? "正则" : "字符串"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="max-w-[220px]">
+                          <code className="block truncate rounded bg-muted px-1.5 py-0.5 text-xs font-mono">
+                            {rule.pattern}
+                          </code>
+                        </TableCell>
+                        <TableCell>
+                          <ActionBadge action={rule.action} />
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Switch checked={rule.enabled} onCheckedChange={() => handleToggle(rule)} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-0.5">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(rule)}>
+                              <PencilIcon className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(rule.id)}
+                            >
+                              <Trash2Icon className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -818,18 +815,12 @@ export default function InterceptPage() {
         <SheetContent side="right" className="flex flex-col gap-0 p-0 sm:max-w-md">
           <SheetHeader className="border-b px-6 py-4">
             <SheetTitle>{editing ? "编辑规则" : "新建规则"}</SheetTitle>
-            <SheetDescription className="text-xs">
-              优先级越大越先匹配；首条命中规则生效，后续跳过
-            </SheetDescription>
+            <SheetDescription className="text-xs">优先级越大越先匹配；首条命中规则生效，后续跳过</SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
             <Field label="名称">
-              <Input
-                placeholder="给规则起个名字"
-                value={form.name}
-                onChange={(e) => set({ name: e.target.value })}
-              />
+              <Input placeholder="给规则起个名字" value={form.name} onChange={(e) => set({ name: e.target.value })} />
             </Field>
 
             <Field label="优先级（数字越大越先匹配）">
@@ -847,7 +838,9 @@ export default function InterceptPage() {
                 value={form.match_target}
                 onValueChange={(v) => set({ match_target: v as RuleForm["match_target"] })}
               >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="tool_name">工具名（tool_name）</SelectItem>
                   <SelectItem value="tool_input">输入内容（tool_input JSON）</SelectItem>
@@ -856,11 +849,10 @@ export default function InterceptPage() {
             </Field>
 
             <Field label="匹配类型">
-              <Select
-                value={form.match_type}
-                onValueChange={(v) => set({ match_type: v as RuleForm["match_type"] })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={form.match_type} onValueChange={(v) => set({ match_type: v as RuleForm["match_type"] })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="string">字符串包含</SelectItem>
                   <SelectItem value="regex">正则表达式</SelectItem>
@@ -875,22 +867,21 @@ export default function InterceptPage() {
                 onChange={(e) => set({ pattern: e.target.value })}
                 className={regexErr ? "border-destructive focus-visible:ring-destructive" : ""}
               />
-              {regexErr && (
-                <p className="text-xs text-destructive mt-1">{regexErr}</p>
-              )}
+              {regexErr && <p className="text-xs text-destructive mt-1">{regexErr}</p>}
               {regexWarn && (
-                <p className="text-xs text-amber-600 mt-1">包含 Go RE2 扩展语法（如 <code className="font-mono">(?i)</code>），浏览器无法预览，提交后由服务端验证</p>
+                <p className="text-xs text-warning mt-1">
+                  包含 Go RE2 扩展语法（如 <code className="font-mono">(?i)</code>），浏览器无法预览，提交后由服务端验证
+                </p>
               )}
             </Field>
 
             <Separator />
 
             <Field label="拦截策略">
-              <Select
-                value={form.action}
-                onValueChange={(v) => set({ action: v as InterceptAction })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select value={form.action} onValueChange={(v) => set({ action: v as InterceptAction })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="allow">允许 — 直接放行，跳过后续规则</SelectItem>
                   <SelectItem value="deny">禁止 — 阻断，返回拒绝消息给模型</SelectItem>
@@ -919,10 +910,7 @@ export default function InterceptPage() {
                     <p className="text-sm font-medium">启用审批超时</p>
                     <p className="text-xs text-muted-foreground">超时后自动处置，不再等待</p>
                   </div>
-                  <Switch
-                    checked={form.timeout_enabled}
-                    onCheckedChange={(v) => set({ timeout_enabled: v })}
-                  />
+                  <Switch checked={form.timeout_enabled} onCheckedChange={(v) => set({ timeout_enabled: v })} />
                 </div>
                 {form.timeout_enabled && (
                   <div className="flex items-end gap-3">
@@ -943,7 +931,9 @@ export default function InterceptPage() {
                         value={form.timeout_action}
                         onValueChange={(v) => set({ timeout_action: v as "deny" | "allow" })}
                       >
-                        <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="deny">自动拒绝</SelectItem>
                           <SelectItem value="allow">自动允许</SelectItem>
@@ -958,17 +948,17 @@ export default function InterceptPage() {
             <Separator />
 
             <div className="flex items-center gap-3">
-              <Switch
-                id="rule-enabled"
-                checked={form.enabled}
-                onCheckedChange={(v) => set({ enabled: v })}
-              />
-              <Label htmlFor="rule-enabled" className="cursor-pointer">启用此规则</Label>
+              <Switch id="rule-enabled" checked={form.enabled} onCheckedChange={(v) => set({ enabled: v })} />
+              <Label htmlFor="rule-enabled" className="cursor-pointer">
+                启用此规则
+              </Label>
             </div>
           </div>
 
           <SheetFooter className="border-t px-6 py-4 flex-row justify-end gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              取消
+            </Button>
             <Button onClick={handleSave} disabled={saving || !!regexErr}>
               {saving ? "保存中…" : "保存"}
             </Button>
@@ -978,7 +968,10 @@ export default function InterceptPage() {
 
       {/* ---- scope dialog ---- */}
       <Dialog open={scopeOpen} onOpenChange={setScopeOpen}>
-        <DialogContent className="sm:max-w-lg flex flex-col overflow-hidden p-0 gap-0" style={{ maxHeight: "min(80vh, 560px)" }}>
+        <DialogContent
+          className="sm:max-w-lg flex flex-col overflow-hidden p-0 gap-0"
+          style={{ maxHeight: "min(80vh, 560px)" }}
+        >
           <DialogHeader className="shrink-0 border-b px-6 py-4">
             <DialogTitle className="flex items-center gap-2">
               <ListFilterIcon className="h-4 w-4" />
@@ -991,7 +984,7 @@ export default function InterceptPage() {
 
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
             {scopeLoading ? (
-              <p className="text-sm text-muted-foreground py-4">加载中…</p>
+              <ListSkeleton label="正在加载工具范围" />
             ) : (
               toolGroups.map((group, gi) => (
                 <div key={group.label}>
@@ -1010,8 +1003,10 @@ export default function InterceptPage() {
                         <label htmlFor={`scope-${t.key}`} className="flex-1 min-w-0 cursor-pointer">
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-sm">{t.key}</span>
-                            {(t.kind && t.kind !== "builtin") && (
-                              <Badge variant="outline" className="px-1 py-0 text-[10px]">{t.kind}</Badge>
+                            {t.kind && t.kind !== "builtin" && (
+                              <Badge variant="outline" className="px-1 py-0 text-[10px]">
+                                {t.kind}
+                              </Badge>
                             )}
                           </div>
                           {t.description && (
@@ -1027,7 +1022,9 @@ export default function InterceptPage() {
           </div>
 
           <div className="shrink-0 border-t px-6 py-3 flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setScopeOpen(false)}>取消</Button>
+            <Button variant="outline" size="sm" onClick={() => setScopeOpen(false)}>
+              取消
+            </Button>
             <Button size="sm" onClick={saveScope} disabled={scopeSaving || scopeLoading}>
               {scopeSaving ? "保存中…" : "保存"}
             </Button>

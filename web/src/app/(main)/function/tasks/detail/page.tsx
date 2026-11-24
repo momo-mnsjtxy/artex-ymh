@@ -32,12 +32,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import type { LLMProfile, Task } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 import { AssetsTab } from "./_tabs/assets-tab";
 import { CoverageGraphTab } from "./_tabs/coverage-graph-tab";
@@ -49,16 +49,31 @@ import { ReportTab } from "./_tabs/report-tab";
 import { RetestsTab } from "./_tabs/retests-tab";
 import { SessionsTab } from "./_tabs/sessions-tab";
 
-const TABS = [
-  { value: "sessions", label: "会话" },
-  { value: "overview", label: "总览" },
-  { value: "graph", label: "探索链路" },
-  { value: "findings", label: "发现" },
-  { value: "retests", label: "复测" },
-  { value: "assets", label: "测试资产" },
-  { value: "coverage", label: "资产覆盖图" },
-  { value: "intercept", label: "拦截审批" },
-  { value: "report", label: "报告" },
+const tabGroups = [
+  {
+    label: "作战",
+    tabs: [
+      { value: "sessions", label: "会话" },
+      { value: "graph", label: "探索链路" },
+    ],
+  },
+  {
+    label: "情报",
+    tabs: [
+      { value: "overview", label: "总览" },
+      { value: "findings", label: "发现" },
+      { value: "retests", label: "复测" },
+      { value: "assets", label: "测试资产" },
+      { value: "coverage", label: "资产覆盖图" },
+    ],
+  },
+  {
+    label: "治理与输出",
+    tabs: [
+      { value: "intercept", label: "拦截审批" },
+      { value: "report", label: "报告" },
+    ],
+  },
 ];
 
 function taskProfileIDs(task: Task): string[] {
@@ -201,13 +216,22 @@ function TaskLLMControl({ task, profiles, onUpdated }: { task: Task; profiles: L
 }
 
 function TaskDetailInner() {
+  const headerRef = React.useRef<HTMLElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id") ?? "";
   const [task, setTask] = React.useState<Task | null>(null);
   const [paused, setPaused] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
-  const [tab, setTab] = React.useState("sessions");
+  const requestedTab = searchParams.get("tab");
+  const group = tabGroups.find((item) => item.tabs.some((tab) => tab.value === requestedTab)) ?? tabGroups[0];
+  const tab = group.tabs.find((item) => item.value === requestedTab)?.value ?? group.tabs[0].value;
+  const setTab = (next: string) => {
+    if (next === tab) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.pushState(null, "", url);
+  };
   const [interceptPendingCount, setInterceptPendingCount] = React.useState(0);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [archiving, setArchiving] = React.useState(false);
@@ -304,7 +328,7 @@ function TaskDetailInner() {
         <p className="text-muted-foreground">{loaded ? `任务 ${id} 已被删除、归档或不存在` : "加载中…"}</p>
         {loaded && (
           <Button asChild variant="outline">
-            <Link href="/function/tasks">
+            <Link href="/function/tasks" aria-label="返回任务列表">
               <ArrowLeftIcon /> 返回任务列表
             </Link>
           </Button>
@@ -346,13 +370,27 @@ function TaskDetailInner() {
   );
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className="flex flex-1 flex-col gap-0">
+    <Tabs
+      data-content-padding="false"
+      value={tab}
+      onValueChange={setTab}
+      className={cn(
+        "flex min-w-0 flex-1 flex-col gap-0",
+        tab === "findings" && "md:h-[calc(100dvh-var(--dashboard-header-height))] md:flex-none",
+      )}
+    >
       {/* Top fixed area */}
-      <header className="sticky top-0 z-10 flex flex-col gap-2 border-b bg-background/95 px-4 py-2.5 backdrop-blur lg:px-6">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
+      <header
+        ref={headerRef}
+        className={cn(
+          "sticky top-12 z-10 flex shrink-0 flex-col gap-2 border-b bg-card px-4 py-2.5 lg:px-6",
+          // On short split views keep room for a wrapped finding and let the task controls scroll.
+          tab === "findings" && "md:max-h-[max(3rem,calc(100%-11rem))] md:overflow-y-auto md:*:shrink-0",
+        )}
+      >
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="size-7">
-            <Link href="/function/tasks">
+            <Link href="/function/tasks" aria-label="返回任务列表">
               <ArrowLeftIcon />
             </Link>
           </Button>
@@ -397,24 +435,43 @@ function TaskDetailInner() {
         </div>
         <p className="truncate text-xs text-muted-foreground">{task.goal}</p>
         {/* Tabs */}
-        <div className="no-scrollbar min-w-0 overflow-x-auto">
-          <TabsList variant="default" className="min-w-max">
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-                {t.value === "intercept" && interceptPendingCount > 0 && (
-                  <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold leading-none text-white">
-                    {interceptPendingCount > 99 ? "99+" : interceptPendingCount}
-                  </span>
-                )}
-              </TabsTrigger>
+        <div className="flex min-w-0 flex-col gap-1.5 lg:flex-row lg:items-center lg:gap-3">
+          <nav aria-label="任务视图分组" className="flex shrink-0 gap-1">
+            {tabGroups.map((item) => (
+              <Button
+                key={item.label}
+                type="button"
+                size="sm"
+                variant={item === group ? "secondary" : "ghost"}
+                aria-current={item === group ? "true" : undefined}
+                className="h-7 px-2 text-xs"
+                onClick={() => {
+                  if (item !== group) setTab(item.tabs[0].value);
+                }}
+              >
+                {item.label}
+              </Button>
             ))}
-          </TabsList>
+          </nav>
+          <div className="min-w-0 overflow-x-auto">
+            <TabsList aria-label={group.label} className="min-w-max">
+              {group.tabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                  {t.value === "intercept" && interceptPendingCount > 0 && (
+                    <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded bg-warning/15 px-1 font-mono text-[10px] font-semibold leading-none text-warning">
+                      {interceptPendingCount > 99 ? "99+" : interceptPendingCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </div>
       </header>
 
       {/* Tab content */}
-      <div className="flex-1 p-4 lg:p-6">
+      <div className={cn("flex-1 p-4 lg:p-6", tab === "findings" && "md:min-h-0 md:py-2 lg:py-2")}>
         <TabsContent value="sessions" className="mt-0">
           <SessionsTab taskId={id} />
         </TabsContent>
@@ -424,8 +481,8 @@ function TaskDetailInner() {
         <TabsContent value="graph" className="mt-0">
           <GraphTab taskId={id} />
         </TabsContent>
-        <TabsContent value="findings" className="mt-0">
-          <FindingsTab taskId={id} />
+        <TabsContent value="findings" className="mt-0 md:h-full">
+          <FindingsTab key={id} taskId={id} headerRef={headerRef} />
         </TabsContent>
         <TabsContent value="retests" className="mt-0">
           <RetestsTab key={id} taskId={id} />

@@ -84,7 +84,7 @@ export function SearchDialog() {
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
+      if (!e.repeat && !e.isComposing && e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((prev) => !prev);
       }
@@ -117,7 +117,7 @@ export function SearchDialog() {
             <CommandItem
               disabled={item.disabled}
               key={`${group}-${item.id}`}
-              value={`${item.group} ${item.label}`}
+              value={`${item.group} ${item.label} ${item.id}`}
               onSelect={() => handleSelect(item)}
             >
               <span className="flex min-w-0 items-center gap-2">
@@ -134,20 +134,21 @@ export function SearchDialog() {
     <>
       <Button
         onClick={() => handleOpenChange(true)}
-        variant="link"
+        aria-label="搜索页面"
+        variant="ghost"
         className="px-0! font-normal text-muted-foreground hover:no-underline"
       >
         <Search data-icon="inline-start" />
-        Search
-        <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-medium text-[10px]">
-          <span className="text-xs">⌘</span>J
+        <span className="hidden md:inline">搜索页面</span>
+        <kbd className="hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-medium text-[10px]">
+          ⌘ / Ctrl K
         </kbd>
       </Button>
-      <CommandDialog open={open} onOpenChange={handleOpenChange}>
+      <CommandDialog title="页面导航" description="搜索并前往页面" open={open} onOpenChange={handleOpenChange}>
         <Command>
-          <CommandInput placeholder="Search dashboards, users, and more…" value={query} onValueChange={setQuery} />
+          <CommandInput placeholder="输入页面名称…" value={query} onValueChange={setQuery} />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>没有匹配的页面</CommandEmpty>
             {query ? renderGroups(searchItems) : renderGroups(recommendations)}
           </CommandList>
         </Command>

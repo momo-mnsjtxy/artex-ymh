@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ListSkeleton } from "@/components/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,7 +97,7 @@ function healthOf(p: LLMProfile, m?: LLMPoolMember): Health {
       hint: m.last_error,
     };
   }
-  return { label: "正常", cls: "border-emerald-500/50 text-emerald-600 dark:text-emerald-400" };
+  return { label: "正常", cls: "border-success/50 text-success" };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -236,7 +237,7 @@ function PoolSheet({
                         </span>
                         <span className="font-medium">{m.name}</span>
                         {m.active && (
-                          <Badge variant="outline" className="border-amber-400/50 text-amber-500">
+                          <Badge variant="outline" className="border-warning/50 text-warning">
                             激活
                           </Badge>
                         )}
@@ -461,13 +462,13 @@ function ProfileSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex flex-col gap-0 p-0 data-[side=right]:min-w-[420px] data-[side=right]:sm:max-w-xl"
+        className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
       >
         <SheetHeader className="px-4">
           <SheetTitle className="flex items-center gap-2">
             {isNew ? "新建模型配置" : `编辑：${profile?.name}`}
             {profile?.is_default && (
-              <Badge variant="outline" className="border-amber-400/50 text-amber-500">
+              <Badge variant="outline" className="border-warning/50 text-warning">
                 激活中
               </Badge>
             )}
@@ -786,6 +787,7 @@ function ProfileSheet({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LLMPage() {
+  const [loadState, setLoadState] = React.useState<"loading" | "ready" | "error">("loading");
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [pool, setPool] = React.useState<LLMPoolStatus | null>(null);
   const [poolOpen, setPoolOpen] = React.useState(false);
@@ -809,8 +811,9 @@ export default function LLMPage() {
   const load = React.useCallback(async () => {
     try {
       setProfiles(await api.llmProfiles());
+      setLoadState("ready");
     } catch {
-      /* ignore */
+      setLoadState("error");
     }
     await loadPool();
   }, [loadPool]);
@@ -865,7 +868,7 @@ export default function LLMPage() {
           <Button size="sm" variant="outline" onClick={() => setPoolOpen(true)}>
             <ZapIcon /> 轮询配置
             {poolOn && (
-              <Badge variant="outline" className="ml-1 border-emerald-500/50 text-emerald-600 dark:text-emerald-400">
+              <Badge variant="outline" className="ml-1 border-success/50 text-success">
                 已开启
               </Badge>
             )}
@@ -901,7 +904,7 @@ export default function LLMPage() {
                   }}
                   className={cn(
                     "cursor-pointer gap-0 py-4 outline-none transition-colors hover:border-foreground/30",
-                    p.is_default && "border-amber-400/50 bg-amber-400/5",
+                    p.is_default && "border-warning/50 bg-warning/5",
                   )}
                 >
                   <CardContent className="grid gap-2 px-4">
@@ -970,7 +973,16 @@ export default function LLMPage() {
                 </Card>
               );
             })}
-            {profiles.length === 0 && (
+            {loadState === "loading" && <ListSkeleton label="正在加载模型配置" />}
+            {loadState === "error" && (
+              <p role="alert" className="col-span-full py-6 text-center text-sm text-danger">
+                模型配置加载失败。{" "}
+                <Button variant="outline" size="sm" onClick={() => void load()}>
+                  重试
+                </Button>
+              </p>
+            )}
+            {loadState === "ready" && profiles.length === 0 && (
               <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-muted-foreground text-sm">
                 还没有模型配置，点击右上角「新建」创建第一个。
               </div>

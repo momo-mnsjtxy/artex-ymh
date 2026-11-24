@@ -145,8 +145,8 @@ export default function IntranetPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <NetworkIcon className="h-5 w-5 text-muted-foreground" />
           <h1 className="text-xl font-semibold tracking-tight">内网作战</h1>
           <Badge variant="secondary" className="tabular-nums">
@@ -190,7 +190,7 @@ export default function IntranetPage() {
       {/* 上半部：内网拓扑 */}
       <Card>
         <CardContent className="p-0">
-          <div className="h-[42vh] w-full overflow-hidden rounded-xl">
+          <div className="w-full overflow-hidden rounded-lg md:h-[42vh] md:min-h-64">
             <TopologyGraph
               data={topology}
               loading={loadingTopology}
