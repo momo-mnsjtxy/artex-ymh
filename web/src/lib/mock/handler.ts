@@ -1974,7 +1974,21 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/traffic" && m === "DELETE") return { deleted: 0 };
   if (path === "/traffic/hosts" && m === "DELETE") return { deleted: (b.hosts as unknown[])?.length ?? 0 };
   if (path === "/traffic/hosts") return { hosts: D.trafficHosts };
-  if (path === "/traffic") return D.traffic;
+  if (path === "/traffic") {
+    const host = (q.get("host") ?? "").trim().toLowerCase();
+    const method = (q.get("method") ?? "").trim().toUpperCase();
+    const term = (q.get("q") ?? "").trim().toLowerCase();
+    const page = Math.max(0, Number.parseInt(q.get("page") ?? "", 10) || 0);
+    const requestedSize = Number.parseInt(q.get("size") ?? "", 10);
+    const size = requestedSize > 0 && requestedSize <= 500 ? requestedSize : 100;
+    const rows = (D.traffic.exchanges ?? []).filter((row) => {
+      if (!row.host.toLowerCase().includes(host) || (method && row.method !== method)) return false;
+      const fields = [row.host, row.url, row.content_type, row.method, String(row.status)];
+      if (row.id === "x-9" && term.length >= 3) fields.push(D.trafficDetail.req, D.trafficDetail.resp);
+      return fields.some((field) => field.toLowerCase().includes(term));
+    });
+    return { ...D.traffic, page, size, total: rows.length, exchanges: rows.slice(page * size, (page + 1) * size) };
+  }
   if (path === "/traffic/exchange") {
     const id = q.get("id");
     // Only the orders fixture includes captured message bodies.
