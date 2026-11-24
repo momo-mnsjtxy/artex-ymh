@@ -149,30 +149,29 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
   const selectedRowRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (selectedId === null || !evidenceTitleRef.current) return;
-    if (!compact) {
-      const viewport = listViewportRef.current;
-      if (!viewport) return;
-      // The resizable group can restore a saved width after this commit.
-      // Measure after reflow, on selection and width changes only.
-      let lastWidth: number;
-      const observer = new ResizeObserver(([entry]) => {
-        if (entry.contentRect.width === lastWidth) return;
-        lastWidth = entry.contentRect.width;
-        const row = selectedRowRef.current?.getBoundingClientRect();
-        if (!row) return;
-        const visibleTop = viewport.getBoundingClientRect().top + viewport.clientTop;
-        const visibleBottom = visibleTop + viewport.clientHeight;
-        if (row.top < visibleTop) viewport.scrollTop += row.top - visibleTop;
-        else if (row.bottom > visibleBottom) viewport.scrollTop += row.bottom - visibleBottom;
-      });
-      observer.observe(viewport);
-      return () => observer.disconnect();
-    }
     const title = evidenceTitleRef.current.getBoundingClientRect();
     const visibleTop = (headerRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
-    if (title.top < visibleTop || title.bottom > window.innerHeight) {
+    if (title.top < visibleTop || title.bottom > window.innerHeight - 8) {
       window.scrollBy({ top: title.top - visibleTop, behavior: "instant" });
     }
+    if (compact) return;
+    const viewport = listViewportRef.current;
+    if (!viewport) return;
+    // The resizable group can restore a saved width after this commit.
+    // Measure after reflow, on selection and width changes only.
+    let lastWidth: number;
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry.contentRect.width === lastWidth) return;
+      lastWidth = entry.contentRect.width;
+      const row = selectedRowRef.current?.getBoundingClientRect();
+      if (!row) return;
+      const listTop = viewport.getBoundingClientRect().top + viewport.clientTop;
+      const listBottom = listTop + viewport.clientHeight;
+      if (row.top < listTop) viewport.scrollTop += row.top - listTop;
+      else if (row.bottom > listBottom) viewport.scrollTop += row.bottom - listBottom;
+    });
+    observer.observe(viewport);
+    return () => observer.disconnect();
   }, [compact, selectedId, headerRef]);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: "task-finding-evidence",
