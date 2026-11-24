@@ -1975,7 +1975,11 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
   if (path === "/traffic/hosts" && m === "DELETE") return { deleted: (b.hosts as unknown[])?.length ?? 0 };
   if (path === "/traffic/hosts") return { hosts: D.trafficHosts };
   if (path === "/traffic") return D.traffic;
-  if (path === "/traffic/exchange") return D.trafficDetail;
+  if (path === "/traffic/exchange") {
+    const id = q.get("id");
+    // Only the orders fixture includes captured message bodies.
+    return id === "x-9" ? D.trafficDetail : { req: "", resp: "" };
+  }
   if (path === "/settings" && m === "GET") return D.settings;
   if (path === "/settings" && m === "PUT") return { ...D.settings, ...b };
   if (path === "/settings/web-search/test") return { ok: true, count: 5, backend: D.settings.web_search_backend };

@@ -10,6 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { APP_CONFIG } from "@/config/app-config";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
@@ -17,13 +18,14 @@ import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 import { NavMain } from "./nav-main";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { setOpenMobile } = useSidebar();
   return (
     <Sidebar {...props} variant="sidebar" collapsible="icon">
       <SidebarHeader className="h-12 justify-center border-b">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link prefetch={false} href="/dashboard">
+              <Link prefetch={false} href="/dashboard" onNavigate={() => setOpenMobile(false)}>
                 <Image
                   src="/logo.png"
                   alt="ARTEX"
