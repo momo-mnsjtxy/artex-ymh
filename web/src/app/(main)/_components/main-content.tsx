@@ -14,11 +14,13 @@ import { useCurrentUser } from "@/hooks/use-current-user";
 import { api } from "@/lib/api";
 import { navLocation } from "@/navigation/sidebar/sidebar-items";
 
+import { usePendingApprovals } from "./pending-approvals";
 import { AccountSwitcher } from "./sidebar/account-switcher";
 import { SearchDialog } from "./sidebar/search-dialog";
 import { ThemeSwitcher } from "./sidebar/theme-switcher";
 
 export function MainContent({ children }: { children: ReactNode }) {
+  const pending = usePendingApprovals();
   const currentUser = useCurrentUser();
   const pathname = usePathname().replace(/\/$/, "");
   const location = navLocation(pathname);
@@ -64,9 +66,12 @@ export function MainContent({ children }: { children: ReactNode }) {
               <span className="hidden font-mono text-muted-foreground text-xs lg:inline">版本 · {version}</span>
             )}
             <SearchDialog />
-            <Button asChild variant="ghost" size="icon-sm">
+            <Button asChild variant="ghost" size="sm">
               <Link href="/system/intercept/approvals" aria-label="待审批记录" title="待审批记录">
                 <ClipboardList />
+                {pending && pending.length > 0 && (
+                  <span className="font-mono text-xs text-warning">{pending.length > 99 ? "99+" : pending.length}</span>
+                )}
               </Link>
             </Button>
             <ThemeSwitcher />

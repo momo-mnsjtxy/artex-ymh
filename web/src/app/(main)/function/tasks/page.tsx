@@ -919,7 +919,7 @@ export default function TasksPage() {
                 没有匹配的任务。
               </div>
             ) : (
-              <Table className="**:data-[slot='table-cell']:px-4 **:data-[slot='table-head']:px-4">
+              <Table className="min-w-[66rem] table-fixed **:data-[slot='table-cell']:px-2 **:data-[slot='table-head']:px-2">
                 <TableHeader className="[&_tr]:border-t">
                   <TableRow>
                     <TableHead className="w-10">
@@ -934,23 +934,24 @@ export default function TasksPage() {
                       label="ID"
                       activeField={sortField}
                       direction={sortDirection}
-                      className="font-mono"
+                      className="w-20 font-mono"
                       onSort={sortTasksBy}
                     />
                     <TableHead>名称</TableHead>
-                    <TableHead>描述</TableHead>
-                    <TableHead>目标</TableHead>
+                    <TableHead>描述 / 目标</TableHead>
                     <SortableTaskHead
                       field="status"
+                      className="w-20"
                       label="状态"
                       activeField={sortField}
                       direction={sortDirection}
                       onSort={sortTasksBy}
                     />
-                    <TableHead className="text-center">目标进度</TableHead>
-                    <TableHead className="text-center">运行中 Worker</TableHead>
+                    <TableHead className="w-20 text-center">目标进度</TableHead>
+                    <TableHead className="w-24 text-center">运行中 Worker</TableHead>
                     <SortableTaskHead
                       field="created"
+                      className="w-[12ch] whitespace-nowrap"
                       label="创建时间"
                       activeField={sortField}
                       direction={sortDirection}
@@ -959,14 +960,15 @@ export default function TasksPage() {
                     />
                     <SortableTaskHead
                       field="duration"
+                      className="w-20"
                       label="运行时长"
                       activeField={sortField}
                       direction={sortDirection}
                       align="right"
                       onSort={sortTasksBy}
                     />
-                    <TableHead className="text-right">Token</TableHead>
-                    <TableHead className="sticky right-0 z-10 bg-card text-right shadow-[-1px_0_0_0_hsl(var(--border))]">
+                    <TableHead className="w-28 text-right">Token</TableHead>
+                    <TableHead className="sticky right-0 z-10 w-44 bg-card text-right shadow-[-1px_0_0_0_var(--border)]">
                       操作
                     </TableHead>
                   </TableRow>
@@ -1182,7 +1184,9 @@ const TaskRow = React.memo(function TaskRow({
         />
       </TableCell>
       <TableCell>
-        <code className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">{task.id}</code>
+        <code className="block truncate rounded bg-muted px-1 font-mono text-xs" title={task.id}>
+          {task.id}
+        </code>
       </TableCell>
       <TableCell className="font-medium">
         <div className="flex max-w-xs items-center gap-2">
@@ -1199,14 +1203,25 @@ const TaskRow = React.memo(function TaskRow({
         >
           {task.description}
         </Link>
+        <span className="block truncate text-xs" title={task.goal}>
+          {task.goal}
+        </span>
       </TableCell>
-      <TableCell className="text-muted-foreground max-w-xs truncate">{task.goal}</TableCell>
       <TableCell>
         <StatusBadge domain="task" value={task.status} dot />
       </TableCell>
       <TableCell className="text-muted-foreground text-center text-xs tabular-nums">
         {typeof task.goals_total === "number" && task.goals_total > 0 ? (
-          `${task.goals_met}/${task.goals_total}`
+          <div className="grid justify-items-center gap-1">
+            <span>
+              {task.goals_met ?? 0}/{task.goals_total}
+            </span>
+            <Progress
+              aria-label="目标达成率"
+              value={Math.min(100, (100 * (task.goals_met ?? 0)) / task.goals_total)}
+              className="h-1 w-full max-w-12"
+            />
+          </div>
         ) : (
           <span className="text-muted-foreground">—</span>
         )}
@@ -1233,7 +1248,7 @@ const TaskRow = React.memo(function TaskRow({
         })()}
       </TableCell>
       <TableCell
-        className="text-right text-xs whitespace-nowrap tabular-nums"
+        className="text-right text-xs whitespace-normal tabular-nums"
         title={
           task.tokens
             ? `输入 ${task.tokens.input_tokens} · 缓存 ${task.tokens.cache_read_tokens} · 输出 ${task.tokens.output_tokens}`
@@ -1252,7 +1267,7 @@ const TaskRow = React.memo(function TaskRow({
           "—"
         )}
       </TableCell>
-      <TableCell className="sticky right-0 z-10 bg-card text-right shadow-[-1px_0_0_0_hsl(var(--border))] group-hover:bg-muted/50">
+      <TableCell className="sticky right-0 z-10 bg-card text-right shadow-[-1px_0_0_0_var(--border)] group-hover:bg-hover">
         <div className="flex items-center justify-end gap-0.5">
           <Button size="icon" variant="ghost" asChild aria-label="查看任务详情" title="查看任务详情">
             <Link href={`/function/tasks/detail?id=${encodeURIComponent(task.id)}`}>

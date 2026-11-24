@@ -29,7 +29,6 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type {
   NavBadge,
@@ -39,6 +38,8 @@ import type {
   NavMainParentItem,
 } from "@/navigation/sidebar/sidebar-items";
 import { navLocation } from "@/navigation/sidebar/sidebar-items";
+
+import { usePendingApprovals } from "../pending-approvals";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
@@ -166,24 +167,7 @@ function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen }: NavItem
 // InterceptPendingBadge polls /api/intercept/pending every 5 s and shows a red
 // count badge when there are unresolved approval requests.
 function InterceptPendingBadge() {
-  const [count, setCount] = React.useState<number | null>(null);
-  React.useEffect(() => {
-    let live = true;
-    async function poll() {
-      try {
-        const list = await api.interceptPending();
-        if (live) setCount(list.length);
-      } catch {
-        if (live) setCount(null);
-      }
-    }
-    void poll();
-    const t = setInterval(poll, 5000);
-    return () => {
-      live = false;
-      clearInterval(t);
-    };
-  }, []);
+  const count = usePendingApprovals()?.length;
   if (!count) return null;
   return (
     <SidebarMenuBadge className="flex h-4.5 min-w-[18px] items-center justify-center rounded bg-warning/10 px-1 font-mono text-[10px] font-semibold text-warning">

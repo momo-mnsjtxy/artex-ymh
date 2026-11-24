@@ -10,6 +10,7 @@ import { getClientCookie } from "@/lib/cookie.client";
 import { cn } from "@/lib/utils";
 
 import { MainContent } from "./_components/main-content";
+import { PendingApprovalsProvider } from "./_components/pending-approvals";
 
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
   // Client-side auth gate — replaces the Next proxy/middleware that static export
@@ -32,27 +33,29 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
   if (!authed) return null;
 
   return (
-    <SidebarProvider
-      defaultOpen={defaultOpen}
-      style={
-        {
-          "--sidebar-width": "13rem",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar />
-      <SidebarInset
-        className={cn(
-          "[html[data-content-layout=centered]_&>*]:mx-auto",
-          "[html[data-content-layout=centered]_&>*]:w-full",
-          "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
-          "peer-data-[variant=inset]:border",
-          "[--dashboard-header-height:--spacing(12)]",
-          "min-w-0",
-        )}
+    <PendingApprovalsProvider>
+      <SidebarProvider
+        defaultOpen={defaultOpen}
+        style={
+          {
+            "--sidebar-width": "13rem",
+          } as React.CSSProperties
+        }
       >
-        <MainContent>{children}</MainContent>
-      </SidebarInset>
-    </SidebarProvider>
+        <AppSidebar />
+        <SidebarInset
+          className={cn(
+            "[html[data-content-layout=centered]_&>*]:mx-auto",
+            "[html[data-content-layout=centered]_&>*]:w-full",
+            "[html[data-content-layout=centered]_&>*]:max-w-screen-2xl",
+            "peer-data-[variant=inset]:border",
+            "[--dashboard-header-height:--spacing(12)]",
+            "min-w-0",
+          )}
+        >
+          <MainContent>{children}</MainContent>
+        </SidebarInset>
+      </SidebarProvider>
+    </PendingApprovalsProvider>
   );
 }
