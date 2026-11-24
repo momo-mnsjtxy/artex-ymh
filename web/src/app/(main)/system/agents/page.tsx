@@ -234,18 +234,19 @@ export default function AgentsPage() {
           )}
         </CardHeader>
         <CardContent>
-          {loadState === "loading" ? (
-            <ListSkeleton label="正在加载 Agent 清单" />
-          ) : loadState === "error" ? (
+          {loadState === "loading" && <ListSkeleton label="正在加载 Agent 清单" />}
+          {loadState === "error" && (
             <p role="alert" className="py-6 text-center text-sm text-danger">
               Agent 清单加载失败。{" "}
               <Button variant="outline" size="sm" onClick={reload}>
                 重试
               </Button>
             </p>
-          ) : agents.length === 0 ? (
+          )}
+          {loadState === "ready" && agents.length === 0 && (
             <p className="text-muted-foreground py-6 text-center text-sm">（暂无 Agent）</p>
-          ) : (
+          )}
+          {loadState === "ready" && agents.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {agents.map((a) => (
                 <AgentGridCard key={a.key} agent={a} onOpen={() => setEditKey(a.key)} onDeleted={reload} />

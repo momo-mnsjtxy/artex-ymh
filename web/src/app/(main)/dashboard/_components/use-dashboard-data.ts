@@ -3,141 +3,61 @@
 import * as React from "react";
 
 import { api } from "@/lib/api";
-import type {
-  Activity,
-  ConvTokenSummary,
-  Finding,
-  LLMProfile,
-  Settings,
-  Stats,
-  Task,
-  TrafficExchange,
-  UsageStats,
-} from "@/lib/types";
+
+const readTasks = () => api.tasks().then((response) => response.tasks);
+const readActivity = () => api.activity(undefined, { limit: 30 }).then((response) => response.items);
+const readTraffic = () => api.traffic(0, 50).then((response) => response.exchanges ?? []);
+const readUsage = () => api.usageStats(365);
+
+// Each resource keeps its last successful snapshot and has at most one request in flight.
+function useDashboardSource<T>(read: () => Promise<T>, interval: number) {
+  const [snapshot, setSnapshot] = React.useState<T | null>(null);
+  React.useEffect(() => {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    async function refresh() {
+      try {
+        const next = await read();
+        if (active) setSnapshot(next);
+      } catch {
+        // The next poll retries without disturbing the other panels.
+      } finally {
+        if (active) timer = setTimeout(refresh, interval);
+      }
+    }
+    void refresh();
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [read, interval]);
+  return snapshot;
+}
 
 export function useDashboardData() {
-  // data state
-  const [tasksLoaded, setTasksLoaded] = React.useState(false);
-  const [assetsLoaded, setAssetsLoaded] = React.useState(false);
-  const [tasks, setTasks] = React.useState<Task[]>([]);
-  const [findings, setFindings] = React.useState<Finding[]>([]);
-  const [stats, setStats] = React.useState<Stats | null>(null);
-  const [settings, setSettings] = React.useState<Settings | null>(null);
-  const [activity, setActivity] = React.useState<Activity[]>([]);
-  const [convTokens, setConvTokens] = React.useState<ConvTokenSummary[]>([]);
-  const [usageStats, setUsageStats] = React.useState<UsageStats | null>(null);
-  const [assetCounts, setAssetCounts] = React.useState<Record<string, number>>({});
-  const [traffic, setTraffic] = React.useState<TrafficExchange[]>([]);
-  const [llmProfiles, setLLMProfiles] = React.useState<LLMProfile[]>([]);
-
-  // The task list is the most expensive dashboard source. Poll it independently
-  // so a large history cannot hold back every other dashboard panel.
-  React.useEffect(() => {
-    let alive = true;
-    let loading = false;
-    let signature = "";
-    const load = async () => {
-      if (loading) return;
-      loading = true;
-      try {
-        const tr = await api.tasks();
-        if (!alive) return;
-        setTasksLoaded(true);
-        const nextSignature = JSON.stringify(tr.tasks);
-        if (nextSignature !== signature) {
-          signature = nextSignature;
-          setTasks(tr.tasks);
-        }
-      } catch {
-        /* transient errors — next poll retries */
-      } finally {
-        loading = false;
-      }
-    };
-    void load();
-    const t = setInterval(load, 5000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, []);
-
-  // The remaining fast sources stay batched so one poll causes a single render.
-  React.useEffect(() => {
-    let alive = true;
-    let loading = false;
-    const load = async () => {
-      if (loading) return;
-      loading = true;
-      try {
-        const [findings, stats, settings, activity, conversationTokens] = await Promise.all([
-          api.findings(),
-          api.stats(),
-          api.settings(),
-          api.activity(undefined, { limit: 30 }),
-          api.conversationTokens(),
-        ]);
-        if (!alive) return;
-        setFindings(findings);
-        setStats(stats);
-        setSettings(settings);
-        setActivity(activity.items);
-        setConvTokens(conversationTokens);
-      } catch {
-        // Preserve stale data and retry on the next interval.
-      } finally {
-        loading = false;
-      }
-    };
-    void load();
-    const timer = setInterval(load, 5000);
-    return () => {
-      alive = false;
-      clearInterval(timer);
-    };
-  }, []);
-
-  // slow poll: traffic, assets, system-static (every 15s)
-  React.useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      try {
-        const [traf, counts, profileList, usage] = await Promise.all([
-          api.traffic(0, 50),
-          api.assetCounts(),
-          api.llmProfiles(),
-          api.usageStats(365),
-        ]);
-        if (!alive) return;
-        setAssetsLoaded(true);
-        setTraffic(traf.exchanges ?? []);
-        setAssetCounts(counts ?? {});
-        setLLMProfiles(profileList);
-        setUsageStats(usage);
-      } catch {
-        /* transient errors */
-      }
-    };
-    void load();
-    const t = setInterval(load, 15000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, []);
-
+  const tasks = useDashboardSource(readTasks, 5000);
+  const findings = useDashboardSource(api.findings, 5000);
+  const stats = useDashboardSource(api.stats, 5000);
+  const settings = useDashboardSource(api.settings, 5000);
+  const activity = useDashboardSource(readActivity, 5000);
+  const convTokens = useDashboardSource(api.conversationTokens, 5000);
+  const traffic = useDashboardSource(readTraffic, 15000);
+  const assetCounts = useDashboardSource(api.assetCounts, 15000);
+  const llmProfiles = useDashboardSource(api.llmProfiles, 15000);
+  const usageStats = useDashboardSource(readUsage, 15000);
   return {
-    tasks,
-    findings,
+    tasks: tasks ?? [],
+    tasksLoaded: tasks !== null,
+    findings: findings ?? [],
+    findingsLoaded: findings !== null,
     stats,
     settings,
-    activity,
-    convTokens,
+    activity: activity ?? [],
+    convTokens: convTokens ?? [],
+    traffic: traffic ?? [],
+    assetCounts: assetCounts ?? {},
+    assetsLoaded: assetCounts !== null,
+    llmProfiles: llmProfiles ?? [],
     usageStats,
-    assetCounts,
-    traffic,
-    llmProfiles,
-    tasksLoaded,
-    assetsLoaded,
   };
 }

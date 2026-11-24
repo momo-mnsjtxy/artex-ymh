@@ -62,12 +62,13 @@ export function TokenUsage({
       });
     };
     for (const t of tasks) {
+      const { input_tokens = 0, output_tokens = 0, cache_read_tokens = 0, cache_write_tokens = 0 } = t.tokens ?? {};
       fold(
         t.llm_profile_id ?? defaultProfileId,
-        t.tokens?.input_tokens ?? 0,
-        t.tokens?.output_tokens ?? 0,
-        t.tokens?.cache_read_tokens ?? 0,
-        t.tokens?.cache_write_tokens ?? 0,
+        input_tokens,
+        output_tokens,
+        cache_read_tokens,
+        cache_write_tokens,
         true,
       );
     }
@@ -139,12 +140,8 @@ export function TokenUsage({
     };
     for (const t of tasks) {
       if (tokenTab !== "all" && (t.llm_profile_id ?? defaultProfileId) !== tokenTab) continue;
-      fold(
-        t.created_at.slice(0, 10),
-        t.tokens?.input_tokens ?? 0,
-        t.tokens?.output_tokens ?? 0,
-        t.tokens?.cache_read_tokens ?? 0,
-      );
+      const { input_tokens = 0, output_tokens = 0, cache_read_tokens = 0 } = t.tokens ?? {};
+      fold(t.created_at.slice(0, 10), input_tokens, output_tokens, cache_read_tokens);
     }
     for (const c of convTokens) {
       if (tokenTab !== "all" && (c.llm_profile_id ?? defaultProfileId) !== tokenTab) continue;
@@ -234,7 +231,7 @@ export function TokenUsage({
           {llmProfiles.map((p) => {
             const key = Number(p.id);
             const hasData = tokenByProfile.has(key) || (p.is_default && tokenByProfile.has(defaultProfileId));
-            const resolvedKey = tokenByProfile.has(key) ? key : p.is_default ? defaultProfileId : key;
+            const resolvedKey = !tokenByProfile.has(key) && p.is_default ? defaultProfileId : key;
             return (
               <button
                 type="button"
@@ -287,19 +284,19 @@ export function TokenUsage({
                 {
                   label: "输入(未命中)",
                   value: displayedTokens.input - displayedTokens.cacheRead,
-                  barColor: dailyTrendConfig.input.color!,
+                  barColor: dailyTrendConfig.input.color,
                   text: "text-running",
                 },
                 {
                   label: "缓存命中",
                   value: displayedTokens.cacheRead,
-                  barColor: dailyTrendConfig.cacheRead.color!,
+                  barColor: dailyTrendConfig.cacheRead.color,
                   text: "text-success",
                 },
                 {
                   label: "输出",
                   value: displayedTokens.output,
-                  barColor: dailyTrendConfig.output.color!,
+                  barColor: dailyTrendConfig.output.color,
                   text: "text-warning",
                 },
               ].map(({ label, value, barColor, text }) => {

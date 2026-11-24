@@ -1001,6 +1001,26 @@ function route(m: string, path: string, seg: string[], q: URLSearchParams, b: Re
     });
     return { items };
   }
+  if (path === "/intranet/topology" && m === "GET") {
+    if (q.has("task_id")) return { nodes: [], edges: [], segments: [] };
+    const segment = "文档示例网段";
+    const nodes = ["192.0.2.10", "192.0.2.20"].map((ip) => ({
+      id: ip,
+      ip,
+      segment,
+      has_session: false,
+      alive_sessions: 0,
+      is_callback: false,
+    }));
+    return {
+      nodes,
+      edges: [{ id: "example-link", kind: "tunnel", from: nodes[0].id, to: nodes[1].id, state: "stopped" }],
+      segments: [{ name: segment, color_key: "example" }],
+    };
+  }
+  if (seg[0] === "tasks" && seg.length === 3 && seg[2] === "pending-scope" && m === "GET") {
+    return { items: [] };
+  }
   if (path === "/tasks/archive/batch" && m === "POST") {
     const requested = bodyIDs(b.task_ids);
     const selected = new Set(requested);

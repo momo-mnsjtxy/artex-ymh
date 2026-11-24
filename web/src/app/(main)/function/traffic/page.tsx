@@ -221,6 +221,7 @@ export default function TrafficPage() {
   const total = traffic?.total ?? exchanges.length;
   const pageCount = Math.max(1, Math.ceil(total / size));
   const rangeStart = total === 0 ? 0 : page * size + 1;
+  const captureLabel = traffic?.enabled ? "录制中" : "已停用";
   const rangeEnd = page * size + exchanges.length;
 
   return (
@@ -240,7 +241,7 @@ export default function TrafficPage() {
             )}
           >
             <RadioTowerIcon className="size-3.5" />
-            {traffic === null ? "读取中" : traffic.enabled ? "录制中" : "已停用"}
+            {traffic ? captureLabel : "读取中"}
           </span>
           {traffic?.proxy && <span className="font-mono text-xs text-muted-foreground">{traffic.proxy}</span>}
           <span className="text-xs text-muted-foreground">

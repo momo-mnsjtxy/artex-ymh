@@ -105,7 +105,9 @@ export function InventorySummary({
 
   // system
   const activeProfile = llmProfiles.find((p) => p.is_default);
-  const pendingCount = pending?.length ?? 0;
+  const pendingCount = pending ? pending.length : 0;
+  const llmLabel = stats?.llm_configured ? "已配置" : "未配置";
+  const captureLabel = settings?.traffic_capture ? "开启" : "关闭";
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
       {/* 资产分布 */}
@@ -206,7 +208,7 @@ export function InventorySummary({
                   : "border-danger/30 bg-danger/10 text-danger",
               )}
             >
-              {stats === null ? "—" : stats.llm_configured ? "已配置" : "未配置"}
+              {stats ? llmLabel : "—"}
             </Badge>
           </div>
 
@@ -221,7 +223,7 @@ export function InventorySummary({
                   : "text-muted-foreground",
               )}
             >
-              {settings === null ? "—" : settings.traffic_capture ? "开启" : "关闭"}
+              {settings ? captureLabel : "—"}
             </Badge>
           </div>
 

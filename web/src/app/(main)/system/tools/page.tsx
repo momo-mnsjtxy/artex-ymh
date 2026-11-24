@@ -430,20 +430,21 @@ export default function ToolsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {loadState === "loading" ? (
-                <ListSkeleton label="正在加载工具清单" />
-              ) : loadState === "error" ? (
+              {loadState === "loading" && <ListSkeleton label="正在加载工具清单" />}
+              {loadState === "error" && (
                 <p role="alert" className="py-6 text-center text-sm text-danger">
                   工具清单加载失败。{" "}
                   <Button variant="outline" size="sm" onClick={reload}>
                     重试
                   </Button>
                 </p>
-              ) : systemTools.length === 0 ? (
+              )}
+              {loadState === "ready" && systemTools.length === 0 && (
                 <p className="text-muted-foreground py-6 text-center text-sm">
                   {query.trim() ? "没有匹配的系统工具" : "（暂无系统工具，等待后端 seed）"}
                 </p>
-              ) : (
+              )}
+              {loadState === "ready" && systemTools.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {systemTools.map((t) => (
                     <ToolGridCard key={t.key} tool={t} onClick={() => openTool(t)} />
@@ -472,20 +473,21 @@ export default function ToolsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {loadState === "loading" ? (
-                <ListSkeleton label="正在加载工具清单" />
-              ) : loadState === "error" ? (
+              {loadState === "loading" && <ListSkeleton label="正在加载工具清单" />}
+              {loadState === "error" && (
                 <p role="alert" className="py-6 text-center text-sm text-danger">
                   工具清单加载失败。{" "}
                   <Button variant="outline" size="sm" onClick={reload}>
                     重试
                   </Button>
                 </p>
-              ) : customTools.length === 0 ? (
+              )}
+              {loadState === "ready" && customTools.length === 0 && (
                 <p className="text-muted-foreground py-6 text-center text-sm">
                   {query.trim() ? "没有匹配的自定义工具" : "（暂无自定义工具，点击右上角「新建自定义工具」）"}
                 </p>
-              ) : (
+              )}
+              {loadState === "ready" && customTools.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {customTools.map((t) => (
                     <ToolGridCard key={t.key} tool={t} onClick={() => openTool(t)} />

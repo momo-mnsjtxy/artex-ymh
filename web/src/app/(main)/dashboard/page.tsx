@@ -7,6 +7,7 @@ import { ArrowUpRight } from "lucide-react";
 import { usePendingApprovals } from "../_components/pending-approvals";
 import { ActivityAndFindings } from "./_components/activity-and-findings";
 import { InventorySummary } from "./_components/inventory-summary";
+import { PendingScopeSummary } from "./_components/pending-scope-summary";
 import { RecentTasks } from "./_components/recent-tasks";
 import { TokenUsage } from "./_components/token-usage";
 import { useDashboardData } from "./_components/use-dashboard-data";
@@ -24,7 +25,9 @@ export default function DashboardPage() {
     },
     {
       label: "严重与高危发现",
-      value: data.stats ? data.findings.filter((f) => f.severity === "critical" || f.severity === "high").length : null,
+      value: data.findingsLoaded
+        ? data.findings.filter((f) => f.severity === "critical" || f.severity === "high").length
+        : null,
       href: "/function/findings",
       tone: "text-danger",
     },
@@ -53,6 +56,7 @@ export default function DashboardPage() {
           </Link>
         ))}
       </div>
+      <PendingScopeSummary tasks={data.tasks} loaded={data.tasksLoaded} />
       <RecentTasks tasks={data.tasks} />
       <ActivityAndFindings activity={data.activity} findings={data.findings} />
       <InventorySummary

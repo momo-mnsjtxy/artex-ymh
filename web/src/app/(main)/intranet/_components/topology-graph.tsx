@@ -23,25 +23,6 @@ const SEGMENT_PALETTE = [
   "#14b8a6",
 ];
 
-// 与资产覆盖图同一套做法：lucide 图标（v1.22 路径）渲染成白色 data URI 作节点图标，
-// 手写内嵌以避免 react-dom/server 在 React19/Next 客户端打包的问题。
-function svgUri(inner: string, filled = false): string {
-  const attrs = filled
-    ? 'fill="#fff" stroke="none"'
-    : 'fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" ${attrs}>${inner}</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-// 普通主机 = 显示器；平台自身（回连端）= 实心五角星。
-const HOST_ICON = svgUri(
-  '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" x2="16" y1="21" x2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
-);
-const CALLBACK_ICON = svgUri(
-  '<path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6-5.9-3.3-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z"/>',
-  true,
-);
-
 export function segmentColor(segments: IntranetSegment[], segment: string): string {
   const idx = Math.max(
     0,
@@ -68,7 +49,7 @@ const ed = (d: unknown) => d as G6EdgeDatum;
 
 function toG6(data: IntranetTopology): { nodes: G6NodeDatum[]; edges: G6EdgeDatum[] } {
   return {
-    nodes: (data.nodes ?? []).map((n) => ({
+    nodes: data.nodes.map((n) => ({
       id: n.id,
       lbl: n.alive_sessions > 0 ? `${n.ip} (${n.alive_sessions})` : n.ip || n.id,
       segment: n.segment,
@@ -77,7 +58,7 @@ function toG6(data: IntranetTopology): { nodes: G6NodeDatum[]; edges: G6EdgeDatu
       isCallback: n.is_callback,
       size: n.is_callback ? 34 : 26,
     })),
-    edges: (data.edges ?? []).map((e) => ({ source: e.from, target: e.to, state: e.state })),
+    edges: data.edges.map((e) => ({ source: e.from, target: e.to, state: e.state })),
   };
 }
 
@@ -94,12 +75,12 @@ function TopologyLegend({
   const nodeCount = data?.nodes.length ?? 0;
   const aliveEdges = data?.edges.filter((e) => e.state === "alive").length ?? 0;
   return (
-    <div className="bg-card/95 pointer-events-auto absolute top-3 left-3 flex max-w-[360px] flex-col gap-2.5 rounded-lg border p-3 text-xs shadow-sm backdrop-blur">
+    <div className="pointer-events-auto flex flex-col gap-2 border-t bg-card p-3 text-xs md:absolute md:top-3 md:left-3 md:max-w-[360px] md:rounded-lg md:border">
       <div className="flex items-center justify-between gap-3">
         {data ? (
           <span className="text-muted-foreground">
             主机 <span className="text-foreground font-semibold tabular-nums">{nodeCount}</span> · 存活链路{" "}
-            <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{aliveEdges}</span>
+            <span className="font-semibold tabular-nums text-success">{aliveEdges}</span>
           </span>
         ) : (
           <span className="text-muted-foreground">{loading ? "加载中…" : "暂无拓扑数据"}</span>
@@ -120,13 +101,13 @@ function TopologyLegend({
       )}
       <div className="border-border/60 text-muted-foreground flex flex-wrap gap-x-3 gap-y-1.5 border-t pt-2">
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-3 rounded-full border-2 border-emerald-600 bg-neutral-300" /> 有存活会话
+          <span className="size-3 rounded-full border-2 border-success bg-muted" /> 有存活会话
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="size-3 rounded-full border border-white/70 bg-neutral-400" /> 无会话
+          <span className="size-3 rounded-full border border-border bg-muted" /> 无会话
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="flex size-3 items-center justify-center rounded-full bg-slate-500">
+          <span className="flex size-3 items-center justify-center rounded-full bg-inactive">
             <svg viewBox="0 0 24 24" className="size-2 fill-white" aria-hidden="true">
               <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6-5.9-3.3-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
             </svg>
@@ -134,10 +115,10 @@ function TopologyLegend({
           平台自身
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-0.5 w-4 rounded-full bg-emerald-500" /> 存活隧道
+          <span className="h-0.5 w-4 rounded-full bg-success" /> 存活隧道
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-0 w-4 border-t-2 border-dashed border-neutral-400" /> 停止/失败
+          <span className="h-0 w-4 border-t-2 border-dashed border-inactive" /> 停止/失败
         </span>
       </div>
       <p className="text-muted-foreground/80 border-border/60 border-t pt-2 leading-relaxed">
@@ -201,39 +182,51 @@ export function TopologyGraph({
   React.useEffect(() => {
     let destroyed = false;
     let graph: G6Graph | null = null;
+    let observer: MutationObserver | undefined;
     void (async () => {
       const { Graph } = await import("@antv/g6");
       if (destroyed || !containerRef.current) return;
+      const readColors = () => {
+        const style = getComputedStyle(document.documentElement);
+        const token = (name: string) => style.getPropertyValue(name).trim();
+        return {
+          text: token("--foreground"),
+          surface: token("--surface"),
+          border: token("--border"),
+          success: token("--success"),
+          inactive: token("--inactive"),
+        };
+      };
+      let colors = readColors();
       graph = new Graph({
         container: containerRef.current,
         autoResize: true,
         autoFit: "view",
-        background: "#f0f2f7",
+        background: "transparent",
         node: {
           style: {
             size: (d: unknown) => nd(d).size,
             fill: (d: unknown) => {
               const n = nd(d);
-              return n.isCallback ? "#475569" : segmentColor(segmentsRef.current, n.segment);
+              return n.isCallback ? colors.inactive : segmentColor(segmentsRef.current, n.segment);
             },
-            stroke: (d: unknown) => (nd(d).hasSession ? "#059669" : "rgba(255,255,255,0.85)"),
+            stroke: (d: unknown) => (nd(d).hasSession ? colors.success : colors.border),
             lineWidth: (d: unknown) => (nd(d).hasSession ? 3 : 1.5),
-            iconSrc: (d: unknown) => (nd(d).isCallback ? CALLBACK_ICON : HOST_ICON),
-            iconWidth: (d: unknown) => Math.max(12, nd(d).size * 0.55),
-            iconHeight: (d: unknown) => Math.max(12, nd(d).size * 0.55),
+            iconText: (d: unknown) => (nd(d).isCallback ? "★" : "▣"),
+            iconFontSize: (d: unknown) => Math.round(nd(d).size * 0.55),
             labelText: (d: unknown) => nd(d).lbl,
             labelFontSize: 10,
             labelPlacement: "bottom",
-            labelFill: "#475569",
+            labelFill: () => colors.text,
             labelBackground: true,
-            labelBackgroundFill: "rgba(255,255,255,0.75)",
+            labelBackgroundFill: () => colors.surface,
             labelBackgroundRadius: 3,
             labelPadding: [1, 3],
           },
         },
         edge: {
           style: {
-            stroke: (d: unknown) => (ed(d).state === "alive" ? "#10b981" : "#94a3b8"),
+            stroke: (d: unknown) => (ed(d).state === "alive" ? colors.success : colors.inactive),
             lineWidth: 1.6,
             lineDash: (d: unknown) => (ed(d).state === "alive" ? [0] : [5, 4]),
             endArrow: false,
@@ -251,11 +244,24 @@ export function TopologyGraph({
         const id = (evt as { target?: { id?: string } }).target?.id;
         if (id) onSelectHostRef.current(id);
       });
+      const instance = graph;
+      observer = new MutationObserver(() => {
+        if (instance.destroyed) return;
+        colors = readColors();
+        const { node, edge } = instance.getOptions();
+        instance.setOptions({ node, edge });
+        if (instance.rendered)
+          void instance.draw().catch((error) => {
+            if (!instance.destroyed) console.error("[intranet-topology] theme:", error);
+          });
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
       graphRef.current = graph;
       applyData();
     })();
     return () => {
       destroyed = true;
+      observer?.disconnect();
       // 先停布局再销毁：尽量缩短「布局在飞、context 被清空」的竞态窗口。
       try {
         graph?.stopLayout();
@@ -274,8 +280,8 @@ export function TopologyGraph({
   }, [sig, applyData]);
 
   return (
-    <div className="relative h-full w-full">
-      <div ref={containerRef} className="h-full w-full" />
+    <div className="relative h-full w-full bg-canvas">
+      <div ref={containerRef} className="h-[38dvh] min-h-56 w-full md:h-full" />
       <TopologyLegend data={data} loading={loading} onRefresh={onRefresh} />
     </div>
   );

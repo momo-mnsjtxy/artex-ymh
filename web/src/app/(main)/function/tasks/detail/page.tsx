@@ -48,16 +48,31 @@ import { ReportTab } from "./_tabs/report-tab";
 import { RetestsTab } from "./_tabs/retests-tab";
 import { SessionsTab } from "./_tabs/sessions-tab";
 
-const TABS = [
-  { value: "sessions", label: "会话" },
-  { value: "overview", label: "总览" },
-  { value: "graph", label: "探索链路" },
-  { value: "findings", label: "发现" },
-  { value: "retests", label: "复测" },
-  { value: "assets", label: "测试资产" },
-  { value: "coverage", label: "资产覆盖图" },
-  { value: "intercept", label: "拦截审批" },
-  { value: "report", label: "报告" },
+const tabGroups = [
+  {
+    label: "作战",
+    tabs: [
+      { value: "sessions", label: "会话" },
+      { value: "graph", label: "探索链路" },
+    ],
+  },
+  {
+    label: "情报",
+    tabs: [
+      { value: "overview", label: "总览" },
+      { value: "findings", label: "发现" },
+      { value: "retests", label: "复测" },
+      { value: "assets", label: "测试资产" },
+      { value: "coverage", label: "资产覆盖图" },
+    ],
+  },
+  {
+    label: "治理与输出",
+    tabs: [
+      { value: "intercept", label: "拦截审批" },
+      { value: "report", label: "报告" },
+    ],
+  },
 ];
 
 function taskProfileIDs(task: Task): string[] {
@@ -206,7 +221,15 @@ function TaskDetailInner() {
   const [task, setTask] = React.useState<Task | null>(null);
   const [paused, setPaused] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
-  const [tab, setTab] = React.useState("sessions");
+  const requestedTab = searchParams.get("tab");
+  const group = tabGroups.find((item) => item.tabs.some((tab) => tab.value === requestedTab)) ?? tabGroups[0];
+  const tab = group.tabs.find((item) => item.value === requestedTab)?.value ?? group.tabs[0].value;
+  const setTab = (next: string) => {
+    if (next === tab) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.pushState(null, "", url);
+  };
   const [interceptPendingCount, setInterceptPendingCount] = React.useState(0);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [archiving, setArchiving] = React.useState(false);
@@ -303,7 +326,7 @@ function TaskDetailInner() {
         <p className="text-muted-foreground">{loaded ? `任务 ${id} 已被删除、归档或不存在` : "加载中…"}</p>
         {loaded && (
           <Button asChild variant="outline">
-            <Link href="/function/tasks">
+            <Link href="/function/tasks" aria-label="返回任务列表">
               <ArrowLeftIcon /> 返回任务列表
             </Link>
           </Button>
@@ -345,12 +368,17 @@ function TaskDetailInner() {
   );
 
   return (
-    <Tabs data-content-padding="false" value={tab} onValueChange={setTab} className="flex flex-1 flex-col gap-0">
+    <Tabs
+      data-content-padding="false"
+      value={tab}
+      onValueChange={setTab}
+      className="flex min-w-0 flex-1 flex-col gap-0"
+    >
       {/* Top fixed area */}
       <header className="sticky top-12 z-10 flex flex-col gap-2 border-b bg-card px-4 py-2.5 lg:px-6">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="size-7">
-            <Link href="/function/tasks">
+            <Link href="/function/tasks" aria-label="返回任务列表">
               <ArrowLeftIcon />
             </Link>
           </Button>
@@ -395,19 +423,38 @@ function TaskDetailInner() {
         </div>
         <p className="truncate text-xs text-muted-foreground">{task.goal}</p>
         {/* Tabs */}
-        <div className="no-scrollbar min-w-0 overflow-x-auto">
-          <TabsList variant="default" className="min-w-max">
-            {TABS.map((t) => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-                {t.value === "intercept" && interceptPendingCount > 0 && (
-                  <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-semibold leading-none text-white">
-                    {interceptPendingCount > 99 ? "99+" : interceptPendingCount}
-                  </span>
-                )}
-              </TabsTrigger>
+        <div className="flex min-w-0 flex-col gap-1.5 lg:flex-row lg:items-center lg:gap-3">
+          <nav aria-label="任务视图分组" className="flex shrink-0 gap-1">
+            {tabGroups.map((item) => (
+              <Button
+                key={item.label}
+                type="button"
+                size="sm"
+                variant={item === group ? "secondary" : "ghost"}
+                aria-current={item === group ? "true" : undefined}
+                className="h-7 px-2 text-xs"
+                onClick={() => {
+                  if (item !== group) setTab(item.tabs[0].value);
+                }}
+              >
+                {item.label}
+              </Button>
             ))}
-          </TabsList>
+          </nav>
+          <div className="min-w-0 overflow-x-auto">
+            <TabsList aria-label={group.label} className="min-w-max">
+              {group.tabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                  {t.value === "intercept" && interceptPendingCount > 0 && (
+                    <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded bg-warning/15 px-1 font-mono text-[10px] font-semibold leading-none text-warning">
+                      {interceptPendingCount > 99 ? "99+" : interceptPendingCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
         </div>
       </header>
 
@@ -423,7 +470,7 @@ function TaskDetailInner() {
           <GraphTab taskId={id} />
         </TabsContent>
         <TabsContent value="findings" className="mt-0">
-          <FindingsTab taskId={id} />
+          <FindingsTab key={id} taskId={id} />
         </TabsContent>
         <TabsContent value="retests" className="mt-0">
           <RetestsTab key={id} taskId={id} />
