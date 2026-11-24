@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import type { LLMProfile, Task } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 import { AssetsTab } from "./_tabs/assets-tab";
 import { CoverageGraphTab } from "./_tabs/coverage-graph-tab";
@@ -373,10 +374,20 @@ function TaskDetailInner() {
       data-content-padding="false"
       value={tab}
       onValueChange={setTab}
-      className="flex min-w-0 flex-1 flex-col gap-0"
+      className={cn(
+        "flex min-w-0 flex-1 flex-col gap-0",
+        tab === "findings" && "md:h-[calc(100dvh-var(--dashboard-header-height))] md:flex-none",
+      )}
     >
       {/* Top fixed area */}
-      <header ref={headerRef} className="sticky top-12 z-10 flex flex-col gap-2 border-b bg-card px-4 py-2.5 lg:px-6">
+      <header
+        ref={headerRef}
+        className={cn(
+          "sticky top-12 z-10 flex shrink-0 flex-col gap-2 border-b bg-card px-4 py-2.5 lg:px-6",
+          // On short split views keep room for a wrapped finding and let the task controls scroll.
+          tab === "findings" && "md:max-h-[max(3rem,calc(100%-11rem))] md:overflow-y-auto md:*:shrink-0",
+        )}
+      >
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="ghost" size="icon" className="size-7">
             <Link href="/function/tasks" aria-label="返回任务列表">
@@ -460,7 +471,7 @@ function TaskDetailInner() {
       </header>
 
       {/* Tab content */}
-      <div className="flex-1 p-4 lg:p-6">
+      <div className={cn("flex-1 p-4 lg:p-6", tab === "findings" && "md:min-h-0 md:py-2 lg:py-2")}>
         <TabsContent value="sessions" className="mt-0">
           <SessionsTab taskId={id} />
         </TabsContent>
@@ -470,7 +481,7 @@ function TaskDetailInner() {
         <TabsContent value="graph" className="mt-0">
           <GraphTab taskId={id} />
         </TabsContent>
-        <TabsContent value="findings" className="mt-0">
+        <TabsContent value="findings" className="mt-0 md:h-full">
           <FindingsTab key={id} taskId={id} headerRef={headerRef} />
         </TabsContent>
         <TabsContent value="retests" className="mt-0">

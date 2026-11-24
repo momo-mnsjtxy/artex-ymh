@@ -149,20 +149,19 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
   const selectedRowRef = React.useRef<HTMLDivElement>(null);
   React.useLayoutEffect(() => {
     if (selectedId === null || !evidenceTitleRef.current) return;
-    const title = evidenceTitleRef.current.getBoundingClientRect();
-    const visibleTop = (headerRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
-    if (title.top < visibleTop || title.bottom > window.innerHeight - 8) {
-      window.scrollBy({ top: title.top - visibleTop, behavior: "instant" });
+    if (compact) {
+      const title = evidenceTitleRef.current.getBoundingClientRect();
+      const visibleTop = (headerRef.current?.getBoundingClientRect().bottom ?? 0) + 8;
+      if (title.top < visibleTop || title.bottom > window.innerHeight - 8) {
+        window.scrollBy({ top: title.top - visibleTop, behavior: "instant" });
+      }
+      return;
     }
-    if (compact) return;
     const viewport = listViewportRef.current;
     if (!viewport) return;
     // The resizable group can restore a saved width after this commit.
-    // Measure after reflow, on selection and width changes only.
-    let lastWidth: number;
-    const observer = new ResizeObserver(([entry]) => {
-      if (entry.contentRect.width === lastWidth) return;
-      lastWidth = entry.contentRect.width;
+    // Measure after reflow, on selection and viewport size changes.
+    const observer = new ResizeObserver(() => {
       const row = selectedRowRef.current?.getBoundingClientRect();
       if (!row) return;
       const listTop = viewport.getBoundingClientRect().top + viewport.clientTop;
@@ -228,9 +227,9 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
 
   const selected = items.find((item) => item.id === selectedId);
   const list = (
-    <Card className="min-w-0 overflow-hidden py-0">
-      <CardContent className="px-0">
-        <div className="flex items-center border-b px-4 py-2 text-xs text-muted-foreground">
+    <Card className="min-w-0 overflow-hidden py-0 md:max-h-full">
+      <CardContent className="px-0 md:flex md:min-h-0 md:flex-col">
+        <div className="flex shrink-0 items-center border-b px-4 py-2 text-xs text-muted-foreground">
           <span className="min-w-0 flex-1">漏洞</span>
           <button
             type="button"
@@ -251,7 +250,7 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
             )}
           </button>
         </div>
-        <div ref={listViewportRef} className="md:max-h-[max(12rem,calc(100dvh-16rem))] md:overflow-y-auto">
+        <div ref={listViewportRef} className="md:overflow-y-auto">
           {items.map((f) => (
             <Row
               key={f.id}
@@ -272,8 +271,8 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
   );
 
   const evidence = selected && (
-    <aside aria-label="发现证据" className="min-w-0 rounded-lg border bg-card">
-      <header className="flex items-center justify-between gap-2 border-b px-3 py-2">
+    <aside aria-label="发现证据" className="min-w-0 rounded-lg border bg-card md:flex md:max-h-full md:flex-col">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
         <h2 ref={evidenceTitleRef} className="min-w-0 truncate text-sm font-semibold" title={findingLabel(selected)}>
           {findingLabel(selected)}
         </h2>
@@ -281,11 +280,14 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
           收起证据
         </Button>
       </header>
-      <div className="space-y-2 p-3">
-        <p className="text-xs text-muted-foreground">
+      <div className="flex flex-col gap-2 p-3 md:min-h-0">
+        <p className="shrink-0 text-xs text-muted-foreground">
           证据 / PoC · 流量证据 <span className="tabular-nums">{selected.traffic_count ?? 0}</span> 条
         </p>
-        <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-all text-xs">
+        <pre
+          key={selected.id}
+          className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-all text-xs md:max-h-none"
+        >
           {selected.evidence || "暂无证据正文。"}
         </pre>
       </div>
@@ -299,12 +301,7 @@ export function FindingsTab({ taskId, headerRef }: { taskId: string; headerRef: 
       </div>
     );
   return (
-    <ResizablePanelGroup
-      orientation="horizontal"
-      defaultLayout={defaultLayout}
-      onLayoutChanged={onLayoutChanged}
-      className="items-start"
-    >
+    <ResizablePanelGroup orientation="horizontal" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
       <ResizablePanel id="findings" defaultSize="62%" minSize="35%">
         {list}
       </ResizablePanel>
