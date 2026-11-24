@@ -6,6 +6,7 @@ import { Bot, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
 import { AgentEditor } from "@/components/agent-editor";
+import { ListSkeleton } from "@/components/list-skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -189,14 +190,18 @@ function CreateAgentDialog({ onCreated }: { onCreated: (key: string) => void }) 
 }
 
 export default function AgentsPage() {
+  const [loadState, setLoadState] = React.useState<"loading" | "ready" | "error">("loading");
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [editKey, setEditKey] = React.useState<string | null>(null);
 
   const reload = React.useCallback(() => {
     api
       .agents()
-      .then(setAgents)
-      .catch(() => setAgents([]));
+      .then((items) => {
+        setAgents(items);
+        setLoadState("ready");
+      })
+      .catch(() => setLoadState("error"));
   }, []);
   React.useEffect(() => {
     reload();
@@ -206,7 +211,7 @@ export default function AgentsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-4 md:gap-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Agent</h1>
           <p className="text-muted-foreground text-sm">内置 Agent 的提示词/配置，以及自定义会话 Agent 的创建与管理</p>
@@ -222,10 +227,23 @@ export default function AgentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Agent 清单</CardTitle>
-          <CardDescription>共 {agents.length} 个</CardDescription>
+          {loadState === "ready" && (
+            <CardDescription>
+              共 <span className="tabular-nums">{agents.length}</span> 个
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
-          {agents.length === 0 ? (
+          {loadState === "loading" ? (
+            <ListSkeleton label="正在加载 Agent 清单" />
+          ) : loadState === "error" ? (
+            <p role="alert" className="py-6 text-center text-sm text-danger">
+              Agent 清单加载失败。{" "}
+              <Button variant="outline" size="sm" onClick={reload}>
+                重试
+              </Button>
+            </p>
+          ) : agents.length === 0 ? (
             <p className="text-muted-foreground py-6 text-center text-sm">（暂无 Agent）</p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -240,7 +258,7 @@ export default function AgentsPage() {
       <Sheet open={!!editing} onOpenChange={(o) => !o && setEditKey(null)}>
         <SheetContent
           side="right"
-          className="flex flex-col gap-0 p-0 data-[side=right]:w-[45vw] data-[side=right]:sm:max-w-[45vw]"
+          className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
         >
           {editing && (
             <>

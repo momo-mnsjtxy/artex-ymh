@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { StatusBadge } from "@/components/status-badge";
 import { TablePagination } from "@/components/table-pagination";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -74,7 +75,7 @@ function ApprovalOrigin({ row, detail = false }: { row: InterceptApprovalRow; de
   return href ? (
     <a
       href={href}
-      className="text-primary underline-offset-4 hover:underline"
+      className="font-mono text-xs text-primary underline-offset-4 hover:underline"
       aria-label={`定位审批 #${row.id} 的来源：${label}`}
       aria-busy={locating}
       onClick={async (e) => {
@@ -97,15 +98,6 @@ function ApprovalOrigin({ row, detail = false }: { row: InterceptApprovalRow; de
   ) : (
     <span>{label}</span>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const labels: Record<string, string> = { pending: "待审批", allowed: "已允许", denied: "已拒绝", timeout: "已超时" };
-  let variant: "default" | "destructive" | "secondary" | "outline" = "outline";
-  if (status === "allowed") variant = "default";
-  if (status === "denied") variant = "destructive";
-  if (status === "pending") variant = "secondary";
-  return <Badge variant={variant}>{labels[status] ?? status}</Badge>;
 }
 
 function MatchCell({ row, showReason = true }: { row: InterceptApprovalRow; showReason?: boolean }) {
@@ -366,7 +358,7 @@ export function ApprovalDetail({
             {current.status === "pending" ? "审查状态" : "审批裁决"}
           </h3>
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={current.status} />
+            <StatusBadge dot domain="approval" value={current.status} />
             <MatchCell row={current} showReason={false} />
           </div>
           <p className="whitespace-pre-wrap break-words text-sm leading-7 [overflow-wrap:anywhere]">
@@ -558,8 +550,8 @@ function ApprovalTable({
     });
   }
   return (
-    <Table className="table-fixed" aria-label={label}>
-      <TableHeader>
+    <Table className="table-fixed" viewportClassName="max-h-[65dvh] overflow-auto" aria-label={label}>
+      <TableHeader className="sticky top-0 z-10 bg-card">
         <TableRow>
           <TableHead className="w-10">
             <span className="sr-only">展开详情</span>
@@ -600,7 +592,7 @@ function ApprovalTable({
                     {open ? <ChevronDownIcon /> : <ChevronRightIcon />}
                   </Button>
                 </TableCell>
-                <TableCell className="hidden text-muted-foreground sm:table-cell">{row.id}</TableCell>
+                <TableCell className="hidden font-mono text-muted-foreground sm:table-cell">{row.id}</TableCell>
                 <TableCell>
                   <code className="block truncate text-xs">{row.tool_name}</code>
                 </TableCell>
@@ -621,12 +613,12 @@ function ApprovalTable({
                   <code className="block truncate text-muted-foreground text-xs">{JSON.stringify(row.tool_input)}</code>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge status={row.status} />
+                  <StatusBadge dot domain="approval" value={row.status} />
                 </TableCell>
-                <TableCell className="hidden text-muted-foreground text-xs lg:table-cell">
+                <TableCell className="hidden font-mono text-muted-foreground text-xs lg:table-cell">
                   {fmtTime(row.created_at)}
                 </TableCell>
-                <TableCell className="hidden text-muted-foreground text-xs xl:table-cell">
+                <TableCell className="hidden font-mono text-muted-foreground text-xs xl:table-cell">
                   {fmtTime(row.decided_at)}
                 </TableCell>
               </TableRow>
@@ -783,8 +775,12 @@ export function ApprovalRecords({ taskId }: { taskId?: string }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ClipboardListIcon className="size-5 text-muted-foreground" />
-          <h1 className="font-semibold text-xl">{title}</h1>
-          {pending.length ? <Badge variant="secondary">{pending.length} 待审批</Badge> : null}
+          <h1 className="font-semibold text-xl tracking-tight">{title}</h1>
+          {pending.length ? (
+            <Badge variant="outline" className="border-warning/30 text-warning">
+              <span className="tabular-nums">{pending.length}</span>待审批
+            </Badge>
+          ) : null}
         </div>
         <Button variant="outline" size="sm" onClick={() => void load(true)} disabled={loading || refreshing}>
           <RefreshCwIcon data-icon="inline-start" className={cn(refreshing && "animate-spin")} />

@@ -5,6 +5,7 @@ import * as React from "react";
 import { PlayIcon, PlusIcon, RotateCcwIcon, SaveIcon, SearchIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ListSkeleton } from "@/components/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -344,6 +345,7 @@ function ToolGridCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
 }
 
 export default function ToolsPage() {
+  const [loadState, setLoadState] = React.useState<"loading" | "ready" | "error">("loading");
   const [tools, setTools] = React.useState<Tool[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [captureOn, setCaptureOn] = React.useState(false);
@@ -353,8 +355,11 @@ export default function ToolsPage() {
   const reload = React.useCallback(() => {
     api
       .tools()
-      .then(setTools)
-      .catch(() => setTools([]));
+      .then((items) => {
+        setTools(items);
+        setLoadState("ready");
+      })
+      .catch(() => setLoadState("error"));
   }, []);
   React.useEffect(() => {
     reload();
@@ -425,7 +430,16 @@ export default function ToolsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {systemTools.length === 0 ? (
+              {loadState === "loading" ? (
+                <ListSkeleton label="正在加载工具清单" />
+              ) : loadState === "error" ? (
+                <p role="alert" className="py-6 text-center text-sm text-danger">
+                  工具清单加载失败。{" "}
+                  <Button variant="outline" size="sm" onClick={reload}>
+                    重试
+                  </Button>
+                </p>
+              ) : systemTools.length === 0 ? (
                 <p className="text-muted-foreground py-6 text-center text-sm">
                   {query.trim() ? "没有匹配的系统工具" : "（暂无系统工具，等待后端 seed）"}
                 </p>
@@ -458,7 +472,16 @@ export default function ToolsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {customTools.length === 0 ? (
+              {loadState === "loading" ? (
+                <ListSkeleton label="正在加载工具清单" />
+              ) : loadState === "error" ? (
+                <p role="alert" className="py-6 text-center text-sm text-danger">
+                  工具清单加载失败。{" "}
+                  <Button variant="outline" size="sm" onClick={reload}>
+                    重试
+                  </Button>
+                </p>
+              ) : customTools.length === 0 ? (
                 <p className="text-muted-foreground py-6 text-center text-sm">
                   {query.trim() ? "没有匹配的自定义工具" : "（暂无自定义工具，点击右上角「新建自定义工具」）"}
                 </p>
@@ -475,7 +498,7 @@ export default function ToolsPage() {
       </Tabs>
 
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelectedKey(null)}>
-        <SheetContent side="right" className="gap-0 p-0 data-[side=right]:w-[30vw] data-[side=right]:sm:max-w-[30vw]">
+        <SheetContent side="right" className="gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
           {selected && (
             <>
               <SheetHeader className="px-4">
@@ -728,7 +751,7 @@ function CustomToolDialog({
     <Sheet open={!!edit} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="flex flex-col gap-0 p-0 data-[side=right]:w-[45vw] data-[side=right]:sm:max-w-[45vw] data-[side=right]:min-w-[480px]"
+        className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
       >
         <SheetHeader className="px-4">
           <SheetTitle>{isNew ? "新建自定义工具" : `编辑 ${tool?.key}`}</SheetTitle>

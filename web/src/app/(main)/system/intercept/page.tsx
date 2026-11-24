@@ -5,6 +5,7 @@ import * as React from "react";
 import { BotIcon, ListFilterIcon, PencilIcon, PlusIcon, ShieldAlertIcon, Trash2Icon, ZapIcon } from "lucide-react";
 import { toast } from "sonner";
 
+import { ListSkeleton } from "@/components/list-skeleton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,7 +112,7 @@ function ActionBadge({ action }: { action: InterceptAction }) {
   if (action === "allow") return <Badge variant="secondary">允许</Badge>;
   if (action === "deny") return <Badge variant="destructive">禁止</Badge>;
   return (
-    <Badge variant="outline" className="border-amber-400 text-amber-600">
+    <Badge variant="outline" className="border-warning/30 text-warning">
       申请
     </Badge>
   );
@@ -665,7 +666,7 @@ export default function InterceptPage() {
       <div className="flex items-center gap-2.5">
         <ShieldAlertIcon className="h-5 w-5 shrink-0" />
         <div>
-          <h1 className="text-lg font-semibold leading-tight">命令拦截</h1>
+          <h1 className="text-xl font-semibold tracking-tight">命令拦截</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             工具执行前先按拦截规则匹配；未命中的命令可交由模型兜底判定
           </p>
@@ -685,7 +686,7 @@ export default function InterceptPage() {
           <ListFilterIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
           <span className="shrink-0 font-medium">拦截范围</span>
           {scopeTools.length === 0 ? (
-            <span className="text-amber-700 dark:text-amber-500">未启用任何工具 — 拦截规则与模型兜底均不会生效</span>
+            <span className="text-warning">未启用任何工具 — 拦截规则与模型兜底均不会生效</span>
           ) : (
             <>
               <Badge variant="secondary" className="shrink-0">
@@ -727,7 +728,7 @@ export default function InterceptPage() {
           <Card>
             <CardContent className="p-0">
               {loading ? (
-                <p className="p-6 text-sm text-muted-foreground">加载中…</p>
+                <ListSkeleton label="正在加载拦截规则" />
               ) : rules.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
                   <ShieldAlertIcon className="h-8 w-8 text-muted-foreground/40" />
@@ -868,7 +869,7 @@ export default function InterceptPage() {
               />
               {regexErr && <p className="text-xs text-destructive mt-1">{regexErr}</p>}
               {regexWarn && (
-                <p className="text-xs text-amber-600 mt-1">
+                <p className="text-xs text-warning mt-1">
                   包含 Go RE2 扩展语法（如 <code className="font-mono">(?i)</code>），浏览器无法预览，提交后由服务端验证
                 </p>
               )}
@@ -983,7 +984,7 @@ export default function InterceptPage() {
 
           <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
             {scopeLoading ? (
-              <p className="text-sm text-muted-foreground py-4">加载中…</p>
+              <ListSkeleton label="正在加载工具范围" />
             ) : (
               toolGroups.map((group, gi) => (
                 <div key={group.label}>

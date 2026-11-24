@@ -100,7 +100,15 @@ const node: Record<string, StatusMeta> = {
   tombstoned: { label: "废弃", tone: "neutral" },
 };
 
+const approval: Record<string, StatusMeta> = {
+  pending: { label: "待审批", tone: "amber" },
+  allowed: { label: "已允许", tone: "green" },
+  denied: { label: "已拒绝", tone: "red" },
+  timeout: { label: "已超时", tone: "slate" },
+};
+
 const maps = {
+  approval,
   intent,
   task,
   severity,

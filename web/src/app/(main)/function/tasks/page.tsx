@@ -951,7 +951,7 @@ export default function TasksPage() {
                     <TableHead className="w-24 text-center">运行中 Worker</TableHead>
                     <SortableTaskHead
                       field="created"
-                      className="w-[12ch] whitespace-nowrap"
+                      className="w-28 whitespace-nowrap"
                       label="创建时间"
                       activeField={sortField}
                       direction={sortDirection}
@@ -968,7 +968,7 @@ export default function TasksPage() {
                       onSort={sortTasksBy}
                     />
                     <TableHead className="w-28 text-right">Token</TableHead>
-                    <TableHead className="sticky right-0 z-10 w-44 bg-card text-right shadow-[-1px_0_0_0_var(--border)]">
+                    <TableHead className="md:sticky md:right-0 md:z-10 w-44 bg-card text-right shadow-[-1px_0_0_0_var(--border)]">
                       操作
                     </TableHead>
                   </TableRow>
@@ -1234,7 +1234,7 @@ const TaskRow = React.memo(function TaskRow({
         )}
       </TableCell>
       <TableCell className="text-muted-foreground text-right text-xs whitespace-nowrap tabular-nums">
-        {fmtDateTime(task.created_unix)}
+        {fmtDateTime(taskCreatedUnix(task))}
       </TableCell>
       <TableCell className="text-right text-xs whitespace-nowrap tabular-nums">
         {(() => {
@@ -1267,7 +1267,7 @@ const TaskRow = React.memo(function TaskRow({
           "—"
         )}
       </TableCell>
-      <TableCell className="sticky right-0 z-10 bg-card text-right shadow-[-1px_0_0_0_var(--border)] group-hover:bg-hover">
+      <TableCell className="md:sticky md:right-0 md:z-10 bg-card text-right shadow-[-1px_0_0_0_var(--border)] group-hover:bg-hover">
         <div className="flex items-center justify-end gap-0.5">
           <Button size="icon" variant="ghost" asChild aria-label="查看任务详情" title="查看任务详情">
             <Link href={`/function/tasks/detail?id=${encodeURIComponent(task.id)}`}>

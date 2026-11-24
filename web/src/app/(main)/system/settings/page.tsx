@@ -238,7 +238,7 @@ export default function SystemSettingsPage() {
   const braveNeedsKey = webSearch && backend === "brave-free" && !braveKeySet;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 md:gap-6">
+    <div className="flex flex-1 flex-col gap-4 md:gap-4">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">系统配置</h1>
         <p className="text-muted-foreground text-sm">全局运行时开关</p>
@@ -248,10 +248,10 @@ export default function SystemSettingsPage() {
           的 key 输入是条件渲染）。grid 会按最高的一张撑满整行、在旁边留下大片空白，
           多列则自动按内容高度平衡填充。卡片间距靠 mb 而非 gap——多列布局下
           column-gap 只管列间距，行间距要由子元素自己给。 */}
-      <div className="columns-1 gap-4 md:gap-6 lg:columns-2">
+      <div className="columns-1 gap-4 md:gap-4 lg:columns-2">
         <UpdateCard />
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <RadioTowerIcon className="size-4" />
@@ -278,7 +278,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <RadioTowerIcon className="size-4" />
@@ -306,7 +306,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <RadioTowerIcon className="size-4" />
@@ -347,7 +347,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <ShieldAlertIcon className="size-4" />
@@ -387,7 +387,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <SearchIcon className="size-4" />
@@ -466,7 +466,7 @@ export default function SystemSettingsPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="brave-key" className="text-sm font-normal text-muted-foreground">
                   Brave Search API Key
-                  {braveKeySet && <span className="ml-2 text-xs text-emerald-500">已配置</span>}
+                  {braveKeySet && <span className="ml-2 text-xs text-success">已配置</span>}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -487,7 +487,7 @@ export default function SystemSettingsPage() {
                   </Button>
                 </div>
                 {braveNeedsKey && (
-                  <p className="text-xs text-amber-500">
+                  <p className="text-xs text-warning">
                     已选择 Brave 但尚未配置 Key —— 在保存 Key 之前，搜索工具不会启用。
                   </p>
                 )}
@@ -501,7 +501,7 @@ export default function SystemSettingsPage() {
               <div className="flex flex-col gap-2">
                 <Label htmlFor="tavily-key" className="text-sm font-normal text-muted-foreground">
                   Tavily Search API Key
-                  {tavilyKeySet && <span className="ml-2 text-xs text-emerald-500">已配置</span>}
+                  {tavilyKeySet && <span className="ml-2 text-xs text-success">已配置</span>}
                 </Label>
                 <div className="flex items-center gap-2">
                   <Input
@@ -522,7 +522,7 @@ export default function SystemSettingsPage() {
                   </Button>
                 </div>
                 {webSearch && backend === "tavily" && !tavilyKeySet && (
-                  <p className="text-xs text-amber-500">
+                  <p className="text-xs text-warning">
                     已选择 Tavily 但尚未配置 Key —— 在保存 Key 之前，搜索工具不会启用。
                   </p>
                 )}
@@ -573,7 +573,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <RadioTowerIcon className="size-4" />
@@ -603,7 +603,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <CpuIcon className="size-4" />
@@ -632,7 +632,7 @@ export default function SystemSettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="mb-4 break-inside-avoid md:mb-6">
+        <Card className="mb-4 break-inside-avoid md:mb-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <KeyboardIcon className="size-4" />

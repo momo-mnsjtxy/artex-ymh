@@ -57,13 +57,13 @@ const MOCK_LOGS: LogLine[] = [
 
 const levelTone: Record<LogLine["level"], string> = {
   info: "text-foreground/80",
-  warn: "text-amber-600 dark:text-amber-400",
-  error: "text-red-600 dark:text-red-400",
+  warn: "text-warning",
+  error: "text-danger",
 };
 const levelDot: Record<LogLine["level"], string> = {
   info: "bg-muted-foreground/40",
-  warn: "bg-amber-500",
-  error: "bg-red-500",
+  warn: "bg-warning",
+  error: "bg-danger",
 };
 
 function fmtTime(ts: string) {
@@ -210,7 +210,8 @@ export default function LogsPage() {
       <div className="flex flex-1 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <Input
-            placeholder="过滤(文本 / tag)…"
+            aria-label="过滤日志文本或标签"
+            placeholder="过滤日志文本或标签…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="h-8 max-w-xs"
@@ -222,6 +223,7 @@ export default function LogsPage() {
                 size="sm"
                 variant={level === lv ? "default" : "outline"}
                 className="h-8"
+                aria-pressed={level === lv}
                 onClick={() => setLevel(lv)}
               >
                 {lv === "all" ? "全部" : lv}
@@ -232,6 +234,7 @@ export default function LogsPage() {
             size="sm"
             variant={paused ? "default" : "outline"}
             className="h-8"
+            aria-pressed={paused}
             onClick={() => setPaused((p) => !p)}
           >
             {paused ? "已暂停" : "暂停"}
@@ -239,9 +242,9 @@ export default function LogsPage() {
           <Button size="sm" variant="outline" className="h-8" onClick={() => setLines([])}>
             清空
           </Button>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {counts.total} 行 · <span className="text-amber-600 dark:text-amber-400">{counts.warn} 警告</span> ·{" "}
-            <span className="text-red-600 dark:text-red-400">{counts.error} 错误</span>
+          <span className="ml-auto font-mono text-xs text-muted-foreground">
+            {counts.total} 行 · <span className="text-warning">{counts.warn} 警告</span> ·{" "}
+            <span className="text-danger">{counts.error} 错误</span>
           </span>
         </div>
 
@@ -250,7 +253,7 @@ export default function LogsPage() {
             const el = e.currentTarget;
             stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
           }}
-          className="h-[calc(100vh-14rem)] overflow-auto rounded-lg border bg-card p-2 font-mono text-xs leading-relaxed"
+          className="h-[calc(100dvh-14rem)] min-h-48 overflow-auto rounded-lg border bg-card p-2 font-mono text-xs leading-relaxed"
         >
           {hasMore && (
             <div className="flex justify-center py-2">
@@ -266,7 +269,9 @@ export default function LogsPage() {
             </div>
           )}
           {filtered.length === 0 ? (
-            <p className="py-10 text-center text-muted-foreground">暂无日志。</p>
+            <p className="py-10 text-center text-muted-foreground">
+              {lines.length ? "没有符合筛选条件的日志。" : "暂无日志。"}
+            </p>
           ) : (
             filtered.map((l) => {
               const body =
@@ -274,11 +279,16 @@ export default function LogsPage() {
               return (
                 <div key={l.seq} className="flex items-start gap-2 px-1 py-0.5 hover:bg-muted/40">
                   <span className={cn("mt-1.5 size-1.5 shrink-0 rounded-full", levelDot[l.level])} />
-                  <span className="shrink-0 tabular-nums text-muted-foreground">{fmtTime(l.ts)}</span>
+                  <time dateTime={l.ts} className="shrink-0 tabular-nums text-muted-foreground">
+                    <span className="hidden sm:inline">{fmtTime(l.ts).slice(0, 11)}</span>
+                    {fmtTime(l.ts).slice(11)}
+                  </time>
                   {l.tag && (
                     <span className="shrink-0 rounded bg-muted px-1 text-[10px] text-foreground/70">{l.tag}</span>
                   )}
-                  <span className={cn("min-w-0 whitespace-pre-wrap break-words", levelTone[l.level])}>{body}</span>
+                  <span className={cn("min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]", levelTone[l.level])}>
+                    {body}
+                  </span>
                 </div>
               );
             })

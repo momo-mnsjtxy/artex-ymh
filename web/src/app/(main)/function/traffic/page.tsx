@@ -235,16 +235,16 @@ export default function TrafficPage() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium",
               traffic?.enabled
-                ? "border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                ? "border-success/25 bg-success/10 text-success"
                 : "border-transparent bg-muted text-muted-foreground",
             )}
           >
             <RadioTowerIcon className="size-3.5" />
-            {traffic?.enabled ? "录制中" : "已停用"}
+            {traffic === null ? "读取中" : traffic.enabled ? "录制中" : "已停用"}
           </span>
           {traffic?.proxy && <span className="font-mono text-xs text-muted-foreground">{traffic.proxy}</span>}
           <span className="text-xs text-muted-foreground">
-            共 <span className="tabular-nums">{traffic?.count ?? 0}</span> 条
+            共 <span className="tabular-nums">{traffic?.count ?? "—"}</span> 条
           </span>
         </div>
       </div>

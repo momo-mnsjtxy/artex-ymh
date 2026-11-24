@@ -164,8 +164,6 @@ function NavItem({ item, isItemActive, isSubItemActive, isSubmenuOpen }: NavItem
   );
 }
 
-// InterceptPendingBadge polls /api/intercept/pending every 5 s and shows a red
-// count badge when there are unresolved approval requests.
 function InterceptPendingBadge() {
   const count = usePendingApprovals()?.length;
   if (!count) return null;
